@@ -4,11 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Character/LDBaseCharacter.h"
+#include "InputActionValue.h"
 #include "LDPlayerCharacter.generated.h"
 
 
 class UCameraComponent;
 class USpringArmComponent;
+class UInputMappingContext;
+class UInputAction;
 
 /**
  * 
@@ -18,15 +21,17 @@ class LASTDANCE_API ALDPlayerCharacter : public ALDBaseCharacter
 {
 	GENERATED_BODY()
 	
-
-	
 public:
 	ALDPlayerCharacter();
 
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
-	virtual void BeginPlay() override;
+
+	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
 
 protected:
 
@@ -35,4 +40,16 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<USpringArmComponent> CameraBoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> JumpAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> LookAction;
 };
