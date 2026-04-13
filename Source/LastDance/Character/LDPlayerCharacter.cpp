@@ -7,6 +7,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Animation/AnimMontage.h"
+#include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ALDPlayerCharacter::ALDPlayerCharacter()
 {
@@ -17,6 +19,8 @@ ALDPlayerCharacter::ALDPlayerCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	SetReplicates(true);
 }
 
 
@@ -48,6 +52,13 @@ void ALDPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Look);
 }
 
+void ALDPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ALDPlayerCharacter, bCanAttack);
+}
+
 void ALDPlayerCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -77,4 +88,26 @@ void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 	{
 		AnimInstance->Montage_Play(AttackMontage);
 	}
+}
+
+void ALDPlayerCharacter::OnRep_CanAttack()
+{
+	if (!bCanAttack)
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	}
+	else
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
+}
+
+bool ALDPlayerCharacter::ServerRPC_Attack_Validate()
+{
+	return false;
+}
+
+
+void ALDPlayerCharacter::ServerRPC_Attack_Implementation()
+{
 }

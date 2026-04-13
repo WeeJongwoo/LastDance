@@ -5,16 +5,9 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimSequence.h"
+#include "Types/LDCombatTypes.h"
 #include "AnimNotifyState_AttackTrace.generated.h"
 
-
-UENUM(BlueprintType)
-enum class EWeaponTraceType : uint8
-{
-	Line        UMETA(DisplayName = "Line Trace (얇은 검, 도)"),
-	Sphere      UMETA(DisplayName = "Sphere Sweep (일반 무기)"),
-	Box         UMETA(DisplayName = "Box Sweep (대검, 망치)")
-};
 
 UCLASS()
 class LASTDANCE_API UAnimNotifyState_AttackTrace : public UAnimNotifyState
@@ -52,10 +45,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
     float Damage = 10.0f;
 
-    // 애니메이션에서 실제 궤적 샘플링 사용 여부
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace Settings")
-    bool bUseAnimationSampling = true;
-
     // 검의 면적(Blade Surface)을 고려한 검사 사용 여부
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace Settings")
     bool bUseBladeSurface = true;
@@ -68,13 +57,6 @@ private:
     // 마지막으로 검사한 애니메이션 프레임 번호
     TMap<USkeletalMeshComponent*, int32> LastCheckedFrame;
 
-    // 이전 프레임의 소켓 위치
-    TMap<USkeletalMeshComponent*, FVector> PrevStartLocations;
-    TMap<USkeletalMeshComponent*, FVector> PrevEndLocations;
-
-    // 이미 히트한 액터 (중복 방지)
-    TMap<USkeletalMeshComponent*, TSet<AActor*>> HitActors;
-
 public:
     virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
         float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
@@ -86,27 +68,6 @@ public:
         const FAnimNotifyEventReference& EventReference) override;
 
 private:
-    // 직선 보간 방식
-    void PerformLinearSweepTrace(USkeletalMeshComponent* MeshComp,
-        const FVector& PrevStart, const FVector& CurrentStart,
-        const FVector& PrevEnd, const FVector& CurrentEnd,
-        int32 NumSamples);
-
-    // 애니메이션 샘플링 방식 (정확한 궤적)
-    void PerformAnimationSweepTrace(USkeletalMeshComponent* MeshComp,
-        UAnimSequence* AnimSequence,
-        float PrevTime, float CurrentTime,
-        int32 NumSamples);
-
-    // 검의 면적을 고려한 Sweep (대각선 포함)
-    void PerformBladeSurfaceSweep(USkeletalMeshComponent* MeshComp,
-        const FVector& PrevStart, const FVector& CurrentStart,
-        const FVector& PrevEnd, const FVector& CurrentEnd);
-
-    // 단일 충돌 검사 수행 (타입에 따라 Line/Sphere/Box)
-    void PerformSingleTrace(UWorld* World, const FVector& Start, const FVector& End,
-        const FCollisionQueryParams& QueryParams,
-        TArray<FHitResult>& OutHits);
 
     // 특정 시간의 소켓 위치를 애니메이션에서 가져오기
     bool GetSocketLocationAtTime(USkeletalMeshComponent* MeshComp,
@@ -114,8 +75,4 @@ private:
         float Time,
         FName SocketName,
         FVector& OutLocation);
-
-    void ProcessHits(USkeletalMeshComponent* MeshComp, const TArray<FHitResult>& HitResults);
-    void OnWeaponHit(USkeletalMeshComponent* MeshComp, const FHitResult& Hit);
-
 };

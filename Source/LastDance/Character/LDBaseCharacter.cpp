@@ -27,6 +27,8 @@ ALDBaseCharacter::ALDBaseCharacter()
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
 
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
+
+	CombatComponent = CreateDefaultSubobject<ULDCombatComponent>(TEXT("CombatComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -48,5 +50,10 @@ void ALDBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+ULDCombatComponent* ALDBaseCharacter::GetCombatComponent() const
+{
+	return CombatComponent;
 }
 

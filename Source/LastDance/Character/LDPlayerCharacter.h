@@ -35,6 +35,12 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void Attack(const FInputActionValue& Value);
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRPC_Attack();
+
+	UFUNCTION()
+	void OnRep_CanAttack();
+
 protected:
 
 	UPROPERTY(EditAnywhere)
@@ -60,6 +66,12 @@ protected:
 	TObjectPtr<UInputAction> AttackAction;
 
 	//================== Animation ==================//
-
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+protected:
+
+	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
+	int8 bCanAttack : 1;
+
+
 };

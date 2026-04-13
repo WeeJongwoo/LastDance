@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interface/LDCombatInterface.h"
 #include "LDBaseCharacter.generated.h"
 
 UCLASS()
-class LASTDANCE_API ALDBaseCharacter : public ACharacter
+class LASTDANCE_API ALDBaseCharacter : public ACharacter, public ILDCombatInterface
 {
 	GENERATED_BODY()
 
@@ -26,6 +27,9 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	
-	
+	virtual ULDCombatComponent* GetCombatComponent() const override;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<ULDCombatComponent> CombatComponent;
 };
