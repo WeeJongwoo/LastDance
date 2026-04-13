@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Animation/AnimMontage.h"
 
 ALDPlayerCharacter::ALDPlayerCharacter()
 {
@@ -67,4 +68,13 @@ void ALDPlayerCharacter::Look(const FInputActionValue& Value)
 
 	AddControllerYawInput(LookAxisVector.X);
 	AddControllerPitchInput(LookAxisVector.Y);
+}
+
+void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && IsValid(AttackMontage))
+	{
+		AnimInstance->Montage_Play(AttackMontage);
+	}
 }
