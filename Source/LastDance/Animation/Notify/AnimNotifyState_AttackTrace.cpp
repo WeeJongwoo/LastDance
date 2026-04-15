@@ -154,7 +154,6 @@ void UAnimNotifyState_AttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, 
 	Params.TraceType = TraceType;
 	Params.SphereRadius = SphereRadius;
 	Params.BoxHalfSize = BoxHalfSize;
-	Params.Damage = Damage;
 	Params.bUseBladeSurface = bUseBladeSurface;
 	Params.bShowDebugTrace = bShowDebugTrace;
 

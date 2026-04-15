@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -39,9 +39,6 @@ struct FWeaponTraceParams
 
 	UPROPERTY()
 	FVector BoxHalfSize = FVector(10.0f, 10.0f, 10.0f);
-
-	UPROPERTY()
-	float Damage = 10.0f;
 
 	UPROPERTY()
 	bool bUseBladeSurface = true;

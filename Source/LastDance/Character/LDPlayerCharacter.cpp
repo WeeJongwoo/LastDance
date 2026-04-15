@@ -11,6 +11,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EngineUtils.h"
 #include "Log/LDLog.h"
+#include "Player/LDPlayerState.h"
+#include "Component/LDStatComponent.h"
 
 ALDPlayerCharacter::ALDPlayerCharacter()
 {
@@ -70,6 +72,20 @@ void ALDPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ALDPlayerCharacter, bCanAttack);
+}
+
+void ALDPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (ALDPlayerState* PS = GetPlayerState<ALDPlayerState>())
+	{
+		if (StatComponent)
+		{
+			StatComponent->InitializeStats(PS->GetBaseStats());
+		}
+	}
+
 }
 
 void ALDPlayerCharacter::Move(const FInputActionValue& Value)

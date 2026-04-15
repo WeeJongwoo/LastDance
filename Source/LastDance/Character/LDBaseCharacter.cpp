@@ -4,6 +4,8 @@
 #include "Character/LDBaseCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Component/LDStatComponent.h"
+#include "Log/LDLog.h"
 
 // Sets default values
 ALDBaseCharacter::ALDBaseCharacter()
@@ -29,7 +31,7 @@ ALDBaseCharacter::ALDBaseCharacter()
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
 
 	CombatComponent = CreateDefaultSubobject<ULDCombatComponent>(TEXT("CombatComponent"));
-
+	StatComponent = CreateDefaultSubobject<ULDStatComponent>(TEXT("StatComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -57,4 +59,55 @@ ULDCombatComponent* ALDBaseCharacter::GetCombatComponent() const
 {
 	return CombatComponent;
 }
+
+float ALDBaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!HasAuthority())
+	{
+		return 0.0f;
+	}
+
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (StatComponent && !StatComponent->IsDead())
+	{
+		ActualDamage = StatComponent->ApplyDamage(ActualDamage);
+
+		if (StatComponent->IsDead())
+		{
+			HandleDeath();
+		}
+	}
+
+	return ActualDamage;
+}
+
+void ALDBaseCharacter::HandleDeath()
+{
+	LD_LOG(LDLog, Log, TEXT("Character Died: %s"), *GetName());
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->DisableMovement();
+
+	if (AController* MyController = GetController())
+	{
+		MyController->UnPossess();
+	}
+
+	MulticastRPC_HandleDeath();
+}
+
+
+void ALDBaseCharacter::MulticastRPC_HandleDeath_Implementation()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->DisableMovement();
+
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetAllBodiesSimulatePhysics(true);
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->WakeAllRigidBodies();
+}
+
+
 

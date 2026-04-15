@@ -8,6 +8,9 @@
 #include "GameFramework/Character.h"
 #include "Log/LDLog.h"
 #include "Net/UnrealNetwork.h"
+#include "Character/LDBaseCharacter.h"
+#include "Component/LDStatComponent.h"
+
 
 
 ULDCombatComponent::ULDCombatComponent()
@@ -88,7 +91,7 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FWeaponTraceSamp
 			}
 #endif
 
-			ProcessHits(HitResults, Params.Damage);
+			ProcessHits(HitResults);
 		}
 	}
 }
@@ -163,7 +166,7 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 		{
 			TArray<FHitResult> HitResults;
 			PerformSingleTrace(World, Start, End, QueryParams, Params, HitResults);
-			ProcessHits(HitResults, Params.Damage);
+			ProcessHits(HitResults);
 
 #if ENABLE_DRAW_DEBUG
 			if (Params.bShowDebugTrace)
@@ -193,12 +196,12 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 	TraceAndProcess(Prev.EndLocation, Current.EndLocation);
 }
 
-void ULDCombatComponent::ProcessHits(const TArray<FHitResult>& HitResults, float Damage)
+void ULDCombatComponent::ProcessHits(const TArray<FHitResult>& HitResults)
 {
-	ServerRPC_ProcessHit(HitResults, Damage);
+	ServerRPC_ProcessHit(HitResults);
 }
 
-void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit, float Damage)
+void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit)
 {
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor)
@@ -208,6 +211,16 @@ void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit, float Damage)
 
 	AActor* OwnerActor = GetOwner();
 
+	// 공격자 ATK 반영
+	float AttackerATK = 0.0f;
+	if (ALDBaseCharacter* OwnerChar = Cast<ALDBaseCharacter>(OwnerActor))
+	{
+		if (ULDStatComponent* Stats = OwnerChar->GetStatComponent())
+		{
+			AttackerATK = Stats->GetATK();
+		}
+	}
+
 	AController* InstigatorController = nullptr;
 	if (APawn* OwnerPawn = Cast<APawn>(OwnerActor))
 	{
@@ -216,7 +229,7 @@ void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit, float Damage)
 
 	UGameplayStatics::ApplyDamage(
 		HitActor,
-		Damage,
+		AttackerATK,
 		InstigatorController,
 		OwnerActor,
 		UDamageType::StaticClass()
@@ -229,7 +242,7 @@ void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit, float Damage)
 	}
 #endif
 
-	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s at %s"), *HitActor->GetName(), *Hit.ImpactPoint.ToString());
+	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s (ATK: %.1f)"), *HitActor->GetName(), AttackerATK);
 }
 
 void ULDCombatComponent::ServerRPC_AttackTraceStart_Implementation()
@@ -242,7 +255,7 @@ void ULDCombatComponent::ServerRPC_AttackTraceEnd_Implementation()
 	HitActors.Empty();
 }
 
-void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitResult>& HitResults, float Damage)
+void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitResult>& HitResults)
 {
 	ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
 	if (!OwnerCharacter)
@@ -285,8 +298,16 @@ void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitRe
 
 		if (HitCheck && !HitActors.Contains(HitActor))
 		{
+			if (ALDBaseCharacter* HitBaseChar = Cast<ALDBaseCharacter>(HitActor))
+			{
+				if (HitBaseChar->GetStatComponent() && HitBaseChar->GetStatComponent()->IsDead())
+				{
+					continue;
+				}
+			}
+
 			HitActors.Add(HitActor);
-			OnWeaponHit(Hit, Damage);
+			OnWeaponHit(Hit);
 		}
 	}
 }

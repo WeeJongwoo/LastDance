@@ -37,11 +37,11 @@ private:
 		const FCollisionQueryParams& QueryParams, const FWeaponTraceParams& Params);
 
 	// 히트 처리
-	void ProcessHits(const TArray<FHitResult>& HitResults, float Damage);
-	void OnWeaponHit(const FHitResult& Hit, float Damage);
+	void ProcessHits(const TArray<FHitResult>& HitResults);
+	void OnWeaponHit(const FHitResult& Hit);
 
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_ProcessHit(const TArray<FHitResult>& HitResults, float Damage);
+	void ServerRPC_ProcessHit(const TArray<FHitResult>& HitResults);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_AttackTraceStart();
