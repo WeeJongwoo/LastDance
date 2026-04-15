@@ -40,11 +40,6 @@ void UAnimNotifyState_AttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, 
 
 	// CombatComponent 획득
 	AActor* Owner = MeshComp->GetOwner();
-	APawn* OwnerPawn = Cast<APawn>(Owner);
-	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled())
-	{
-		return;
-	}
 
 	ILDCombatInterface* CombatInterface = Cast<ILDCombatInterface>(Owner);
 	if (!CombatInterface)

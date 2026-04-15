@@ -53,8 +53,10 @@ void ULDCombatComponent::EndAttackTrace()
 void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FWeaponTraceSample>& Samples, const FWeaponTraceParams& Params)
 {
 	if (!bAttackTraceActive || Samples.Num() == 0)
+	{
 		return;
-
+	}
+		
 	UWorld* World = GetWorld();
 	if (!World)
 		return;
