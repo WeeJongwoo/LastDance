@@ -29,7 +29,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void PlayAttackMontage();
 protected:
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -37,6 +40,12 @@ protected:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPC_Attack();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_AttackEnd();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_PlayAttackMontage(ALDPlayerCharacter* CharacterToPlay);
 
 	UFUNCTION()
 	void OnRep_CanAttack();
@@ -66,12 +75,13 @@ protected:
 	TObjectPtr<UInputAction> AttackAction;
 
 	//================== Animation ==================//
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UAnimMontage> AttackMontage;
 
 protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
-	int8 bCanAttack : 1;
+	uint8 bCanAttack : 1;
 
 
 };

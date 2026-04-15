@@ -12,8 +12,10 @@ void UAnimNotifyState_AttackTrace::NotifyBegin(USkeletalMeshComponent* MeshComp,
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
 	if (!MeshComp)
+	{
 		return;
-
+	}
+		
 	LastCheckedFrame.Add(MeshComp, -1);
 
 	// CombatComponent에 공격 트레이스 시작 알림
@@ -38,6 +40,12 @@ void UAnimNotifyState_AttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, 
 
 	// CombatComponent 획득
 	AActor* Owner = MeshComp->GetOwner();
+	APawn* OwnerPawn = Cast<APawn>(Owner);
+	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled())
+	{
+		return;
+	}
+
 	ILDCombatInterface* CombatInterface = Cast<ILDCombatInterface>(Owner);
 	if (!CombatInterface)
 	{

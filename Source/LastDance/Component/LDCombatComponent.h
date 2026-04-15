@@ -43,6 +43,12 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_ProcessHit(const TArray<FHitResult>& HitResults, float Damage);
 
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_AttackTraceStart();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_AttackTraceEnd();
+
 	// 이미 히트한 액터 (중복 방지)
 	TSet<AActor*> HitActors;
 

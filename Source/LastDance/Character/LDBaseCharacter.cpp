@@ -29,6 +29,7 @@ ALDBaseCharacter::ALDBaseCharacter()
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
 
 	CombatComponent = CreateDefaultSubobject<ULDCombatComponent>(TEXT("CombatComponent"));
+
 }
 
 // Called when the game starts or when spawned

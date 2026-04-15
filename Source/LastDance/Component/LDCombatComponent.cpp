@@ -6,6 +6,8 @@
 #include "DrawDebugHelpers.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
+#include "Log/LDLog.h"
+#include "Net/UnrealNetwork.h"
 
 
 ULDCombatComponent::ULDCombatComponent()
@@ -24,19 +26,25 @@ void ULDCombatComponent::InitializeComponent()
 
 void ULDCombatComponent::BeginAttackTrace()
 {
+	LD_LOG(LDLog, Log, TEXT("Begin"));
+
 	APawn* Owner = Cast<APawn>(GetOwner());
 	if (Owner && Owner->IsLocallyControlled())
 	{
 		HitActors.Empty();
 		bAttackTraceActive = true;
+		ServerRPC_AttackTraceStart();
 	}
 }
 
 void ULDCombatComponent::EndAttackTrace()
 {
+	LD_LOG(LDLog, Log, TEXT("Begin"));
+
 	APawn* Owner = Cast<APawn>(GetOwner());
 	if (Owner && Owner->IsLocallyControlled())
 	{
+		ServerRPC_AttackTraceEnd();
 		HitActors.Empty();
 		bAttackTraceActive = false;
 	}
@@ -100,7 +108,7 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 			OutHits,
 			Start,
 			End,
-			ECC_GameTraceChannel3,
+			ECC_GameTraceChannel1,
 			QueryParams
 		);
 	}
@@ -114,7 +122,7 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 			Start,
 			End,
 			FQuat::Identity,
-			ECC_GameTraceChannel3,
+			ECC_GameTraceChannel1,
 			SphereShape,
 			QueryParams
 		);
@@ -133,7 +141,7 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 			Start,
 			End,
 			Rotation,
-			ECC_GameTraceChannel3,
+			ECC_GameTraceChannel1,
 			BoxShape,
 			QueryParams
 		);
@@ -149,7 +157,7 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 	if (!World)
 		return;
 
-	auto TraceAndProcess = [&](const FVector& Start, const FVector& End, const FColor& DebugColor)
+	auto TraceAndProcess = [&](const FVector& Start, const FVector& End)
 		{
 			TArray<FHitResult> HitResults;
 			PerformSingleTrace(World, Start, End, QueryParams, Params, HitResults);
@@ -158,28 +166,29 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 #if ENABLE_DRAW_DEBUG
 			if (Params.bShowDebugTrace)
 			{
+				FColor DebugColor = (HitResults.Num() > 0) ? FColor::Green : FColor::Red;
 				DrawDebugLine(World, Start, End, DebugColor, false, 2.0f, 0, 2.0f);
 			}
 #endif
 		};
 
 	// 1: 현재 프레임 무기 라인
-	TraceAndProcess(Current.StartLocation, Current.EndLocation, FColor::Green);
+	TraceAndProcess(Current.StartLocation, Current.EndLocation);
 
 	// 2: 이전 프레임 무기 라인
-	TraceAndProcess(Prev.StartLocation, Prev.EndLocation, FColor::Yellow);
+	TraceAndProcess(Prev.StartLocation, Prev.EndLocation);
 
 	// 3: 대각선 (이전 시작 → 현재 끝)
-	TraceAndProcess(Prev.StartLocation, Current.EndLocation, FColor::Red);
+	TraceAndProcess(Prev.StartLocation, Current.EndLocation);
 
 	// 4: 대각선 (이전 끝 → 현재 시작)
-	TraceAndProcess(Prev.EndLocation, Current.StartLocation, FColor::Red);
+	TraceAndProcess(Prev.EndLocation, Current.StartLocation);
 
 	// 5: 시작점 이동 궤적
-	TraceAndProcess(Prev.StartLocation, Current.StartLocation, FColor::Red);
+	TraceAndProcess(Prev.StartLocation, Current.StartLocation);
 
 	// 6: 끝점 이동 궤적
-	TraceAndProcess(Prev.EndLocation, Current.EndLocation, FColor::Red);
+	TraceAndProcess(Prev.EndLocation, Current.EndLocation);
 }
 
 void ULDCombatComponent::ProcessHits(const TArray<FHitResult>& HitResults, float Damage)
@@ -191,14 +200,22 @@ void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit, float Damage)
 {
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor)
+	{
 		return;
+	}
 
 	AActor* OwnerActor = GetOwner();
+
+	AController* InstigatorController = nullptr;
+	if (APawn* OwnerPawn = Cast<APawn>(OwnerActor))
+	{
+		InstigatorController = OwnerPawn->GetController();
+	}
 
 	UGameplayStatics::ApplyDamage(
 		HitActor,
 		Damage,
-		OwnerActor ? OwnerActor->GetInstigatorController() : nullptr,
+		InstigatorController,
 		OwnerActor,
 		UDamageType::StaticClass()
 	);
@@ -206,11 +223,21 @@ void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit, float Damage)
 #if ENABLE_DRAW_DEBUG
 	if (UWorld* World = GetWorld())
 	{
-		DrawDebugSphere(World, Hit.ImpactPoint, 15.0f, 12, FColor::Red, false, 2.0f);
+		DrawDebugSphere(World, Hit.ImpactPoint, 15.0f, 12, FColor::Green, false, 2.0f);
 	}
 #endif
 
-	UE_LOG(LogTemp, Log, TEXT("Weapon Hit: %s at %s"), *HitActor->GetName(), *Hit.ImpactPoint.ToString());
+	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s at %s"), *HitActor->GetName(), *Hit.ImpactPoint.ToString());
+}
+
+void ULDCombatComponent::ServerRPC_AttackTraceStart_Implementation()
+{
+	HitActors.Empty();
+}
+
+void ULDCombatComponent::ServerRPC_AttackTraceEnd_Implementation()
+{
+	HitActors.Empty();
 }
 
 void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitResult>& HitResults, float Damage)
@@ -226,7 +253,7 @@ void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitRe
 		AActor* HitActor = Hit.GetActor();
 		if (!HitActor)
 		{
-			return;
+			continue;
 		}
 
 		ACharacter* HitCharacter = Cast<ACharacter>(HitActor);
@@ -234,11 +261,11 @@ void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitRe
 		bool HitCheck = false;
 		if (HitCharacter)
 		{
-			UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-			if (!AnimInstance || AnimInstance->IsAnyMontagePlaying())
+			/*UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
+			if (!AnimInstance || !AnimInstance->IsAnyMontagePlaying())
 			{
 				return;
-			}
+			}*/
 
 			FVector OwnerLocation = GetOwner()->GetActorLocation();
 			FVector HitActorLocation = HitCharacter->GetActorLocation();

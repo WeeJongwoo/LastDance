@@ -9,6 +9,8 @@
 #include "Animation/AnimMontage.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "EngineUtils.h"
+#include "Log/LDLog.h"
 
 ALDPlayerCharacter::ALDPlayerCharacter()
 {
@@ -19,6 +21,7 @@ ALDPlayerCharacter::ALDPlayerCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+	bCanAttack = true;
 
 	SetReplicates(true);
 }
@@ -28,7 +31,14 @@ void ALDPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	EnableInput(PlayerController);
+
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 	{
 		Subsystem->AddMappingContext(DefaultMappingContext, 0);
@@ -44,12 +54,15 @@ void ALDPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
-
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Move);
-	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Look);
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (EnhancedInputComponent)
+	{
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Move);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Look);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Attack);
+	}
 }
 
 void ALDPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -83,9 +96,42 @@ void ALDPlayerCharacter::Look(const FInputActionValue& Value)
 
 void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 {
+	if (bCanAttack)
+	{
+		bCanAttack = false;
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+		PlayAttackMontage();
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if(AnimInstance)
+		{
+			FOnMontageEnded MontageEndedDelegate;
+			MontageEndedDelegate.BindWeakLambda(this, [this](UAnimMontage* Montage, bool bInterrupted)
+				{
+					LD_LOG(LDLog, Log, TEXT("Attack montage ended"));
+
+					if (Montage == AttackMontage)
+					{
+						bCanAttack = true;
+						GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+						ServerRPC_AttackEnd();
+					}
+				});
+
+			AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
+		}
+
+		ServerRPC_Attack();
+	}
+}
+
+void ALDPlayerCharacter::PlayAttackMontage()
+{
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && IsValid(AttackMontage))
 	{
+		AnimInstance->StopAllMontages(0.0f);
 		AnimInstance->Montage_Play(AttackMontage);
 	}
 }
@@ -104,10 +150,28 @@ void ALDPlayerCharacter::OnRep_CanAttack()
 
 bool ALDPlayerCharacter::ServerRPC_Attack_Validate()
 {
-	return false;
+	return bCanAttack;
 }
 
 
 void ALDPlayerCharacter::ServerRPC_Attack_Implementation()
 {
+	bCanAttack = false;
+	OnRep_CanAttack();
+	MulticastRPC_PlayAttackMontage(this);
+}
+
+
+void ALDPlayerCharacter::ServerRPC_AttackEnd_Implementation()
+{
+	bCanAttack = true;
+	OnRep_CanAttack();
+}
+
+void ALDPlayerCharacter::MulticastRPC_PlayAttackMontage_Implementation(ALDPlayerCharacter* CharacterToPlay)
+{
+	if (!IsLocallyControlled() && !HasAuthority() )
+	{
+		CharacterToPlay->PlayAttackMontage();
+	}
 }
