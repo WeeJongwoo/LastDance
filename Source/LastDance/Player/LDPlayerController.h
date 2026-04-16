@@ -8,6 +8,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class ULDHUDWidget;
 
 /**
  * 
@@ -26,8 +27,19 @@ protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 
+	virtual void AcknowledgePossession(class APawn* P) override;
+
+	UFUNCTION()
+	void UpdateHP(float NewHP, float MaxHP);
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<ULDHUDWidget> HUDClass;
+
+
+	TObjectPtr<ULDHUDWidget> HUDWidget;
 };

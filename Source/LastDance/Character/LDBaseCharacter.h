@@ -5,11 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interface/LDCombatInterface.h"
+#include "Interface/LDStatInterface.h"
 #include "LDBaseCharacter.generated.h"
 
 
 UCLASS()
-class LASTDANCE_API ALDBaseCharacter : public ACharacter, public ILDCombatInterface
+class LASTDANCE_API ALDBaseCharacter : public ACharacter, public ILDCombatInterface, public ILDStatInterface
 {
 	GENERATED_BODY()
 
@@ -20,7 +21,7 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	UFUNCTION(BlueprintPure)
-	ULDStatComponent* GetStatComponent() const { return StatComponent; }
+	virtual ULDStatComponent* GetStatComponent() const override { return StatComponent; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -33,7 +34,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	virtual ULDCombatComponent* GetCombatComponent() const;
+	virtual ULDCombatComponent* GetCombatComponent() const override;
 
 protected:
 	virtual void HandleDeath();

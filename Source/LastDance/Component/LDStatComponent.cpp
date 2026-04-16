@@ -25,7 +25,7 @@ void ULDStatComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+	OnRep_CurrentHP();
 }
 
 void ULDStatComponent::InitializeStats(const FLDCharacterStats& InStats)

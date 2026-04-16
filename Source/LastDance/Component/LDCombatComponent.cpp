@@ -29,7 +29,7 @@ void ULDCombatComponent::InitializeComponent()
 
 void ULDCombatComponent::BeginAttackTrace()
 {
-	LD_LOG(LDLog, Log, TEXT("Begin"));
+	//LD_LOG(LDLog, Log, TEXT("Begin"));
 
 	APawn* Owner = Cast<APawn>(GetOwner());
 	if (Owner && Owner->IsLocallyControlled())
@@ -42,7 +42,7 @@ void ULDCombatComponent::BeginAttackTrace()
 
 void ULDCombatComponent::EndAttackTrace()
 {
-	LD_LOG(LDLog, Log, TEXT("Begin"));
+	//LD_LOG(LDLog, Log, TEXT("Begin"));
 
 	APawn* Owner = Cast<APawn>(GetOwner());
 	if (Owner && Owner->IsLocallyControlled())

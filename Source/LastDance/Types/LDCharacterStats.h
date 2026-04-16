@@ -17,3 +17,16 @@ struct FLDCharacterStats
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DEF = 5.0f;
 };
+
+USTRUCT(BlueprintType)
+struct FLDWeaponStats
+{
+	GENERATED_BODY()
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float WeaponATK = 30.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float WeaponDEF = 0.0f;
+};

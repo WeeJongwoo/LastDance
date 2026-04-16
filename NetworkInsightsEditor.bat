@@ -1,1 +1,1 @@
-UnrealEditor.exe "%cd%\ArenaBattle.uproject" -NetTrace=1 -Trace=Net
+UnrealEditor.exe "%cd%\LastDance.uproject" -NetTrace=1 -Trace=default,Net
