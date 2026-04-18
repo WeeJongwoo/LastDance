@@ -53,7 +53,7 @@ void ULDCombatComponent::EndAttackTrace()
 	}
 }
 
-void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FWeaponTraceSample>& Samples, const FWeaponTraceParams& Params)
+void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FAttackTraceSample>& Samples, const FAttackTraceParams& Params, ETraceChannelType Channel)
 {
 	if (!bAttackTraceActive || Samples.Num() == 0)
 	{
@@ -73,16 +73,16 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FWeaponTraceSamp
 
 	for (int32 i = 0; i < Samples.Num(); ++i)
 	{
-		const FWeaponTraceSample& Sample = Samples[i];
+		const FAttackTraceSample& Sample = Samples[i];
 
 		if (Params.bUseBladeSurface && i > 0)
 		{
-			PerformBladeSurfaceSweep(World, Samples[i - 1], Sample, QueryParams, Params);
+			PerformBladeSurfaceSweep(World, Samples[i - 1], Sample, QueryParams, Params, Channel);
 		}
 		else
 		{
 			TArray<FHitResult> HitResults;
-			PerformSingleTrace(World, Sample.StartLocation, Sample.EndLocation, QueryParams, Params, HitResults);
+			PerformSingleTrace(World, Sample.StartLocation, Sample.EndLocation, QueryParams, Channel,Params, HitResults);
 
 #if ENABLE_DRAW_DEBUG
 			if (Params.bShowDebugTrace)
@@ -96,8 +96,43 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FWeaponTraceSamp
 	}
 }
 
+bool ULDCombatComponent::PerformTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params, TArray<FHitResult>& OutHits)
+{
+	UWorld* World = GetWorld();
+	if (!World) return false;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+	QueryParams.bTraceComplex = false;
+	QueryParams.bReturnPhysicalMaterial = false;
+
+	PerformSingleTrace(World, Start, End,  QueryParams, Channel, Params, OutHits);
+
+#if ENABLE_DRAW_DEBUG
+	if (Params.bShowDebugTrace)
+	{
+		FColor DebugColor = (OutHits.Num() > 0) ? FColor::Green : FColor::Red;
+		DrawDebugLine(World, Start, End, DebugColor, false, 2.0f, 0, 2.0f);
+	}
+#endif
+
+	return OutHits.Num() > 0;
+}
+
+void ULDCombatComponent::PerformAttackTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params)
+{
+	TArray<FHitResult> HitResults;
+	if (!PerformTrace(Start, End, Channel, Params, HitResults))
+	{
+		return;
+	}
+
+	HitActors.Empty();  // 일회성이므로 이전 히트 기록 초기화
+	ProcessHits(HitResults);
+}
+
 void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start, const FVector& End,
-	const FCollisionQueryParams& QueryParams, const FWeaponTraceParams& Params,
+	const FCollisionQueryParams& QueryParams, ETraceChannelType TraceChannel, const FAttackTraceParams& Params,
 	TArray<FHitResult>& OutHits)
 {
 	if (!World)
@@ -105,21 +140,23 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 
 	OutHits.Reset();
 
+	ECollisionChannel CollisionChannel = GetCollisionChannel(TraceChannel);
+
 	switch (Params.TraceType)
 	{
-	case EWeaponTraceType::Line:
+	case EAttackTraceType::Line:
 	{
 		World->LineTraceMultiByChannel(
 			OutHits,
 			Start,
 			End,
-			ECC_GameTraceChannel1,
+			CollisionChannel,
 			QueryParams
 		);
 	}
 	break;
 
-	case EWeaponTraceType::Sphere:
+	case EAttackTraceType::Sphere:
 	{
 		FCollisionShape SphereShape = FCollisionShape::MakeSphere(Params.SphereRadius);
 		World->SweepMultiByChannel(
@@ -127,14 +164,14 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 			Start,
 			End,
 			FQuat::Identity,
-			ECC_GameTraceChannel1,
+			CollisionChannel,
 			SphereShape,
 			QueryParams
 		);
 	}
 	break;
 
-	case EWeaponTraceType::Box:
+	case EAttackTraceType::Box:
 	{
 		FCollisionShape BoxShape = FCollisionShape::MakeBox(Params.BoxHalfSize);
 
@@ -146,7 +183,7 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 			Start,
 			End,
 			Rotation,
-			ECC_GameTraceChannel1,
+			CollisionChannel,
 			BoxShape,
 			QueryParams
 		);
@@ -156,8 +193,8 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 }
 
 void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
-	const FWeaponTraceSample& Prev, const FWeaponTraceSample& Current,
-	const FCollisionQueryParams& QueryParams, const FWeaponTraceParams& Params)
+	const FAttackTraceSample& Prev, const FAttackTraceSample& Current,
+	const FCollisionQueryParams& QueryParams, const FAttackTraceParams& Params, ETraceChannelType Channel)
 {
 	if (!World)
 		return;
@@ -165,7 +202,7 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 	auto TraceAndProcess = [&](const FVector& Start, const FVector& End)
 		{
 			TArray<FHitResult> HitResults;
-			PerformSingleTrace(World, Start, End, QueryParams, Params, HitResults);
+			PerformSingleTrace(World, Start, End, QueryParams, Channel, Params, HitResults);
 			ProcessHits(HitResults);
 
 #if ENABLE_DRAW_DEBUG
@@ -201,7 +238,7 @@ void ULDCombatComponent::ProcessHits(const TArray<FHitResult>& HitResults)
 	ServerRPC_ProcessHit(HitResults);
 }
 
-void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit)
+void ULDCombatComponent::OnAttackHit(const FHitResult& Hit)
 {
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor)
@@ -243,6 +280,21 @@ void ULDCombatComponent::OnWeaponHit(const FHitResult& Hit)
 #endif
 
 	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s (ATK: %.1f)"), *HitActor->GetName(), AttackerATK);
+}
+
+ECollisionChannel ULDCombatComponent::GetCollisionChannel(ETraceChannelType Channel) const
+{
+	switch (Channel)
+	{
+	case ETraceChannelType::Player:
+		return ECC_GameTraceChannel1; // 플레이어 공격 채널
+	case ETraceChannelType::Enemy:
+		return ECC_GameTraceChannel4; // 적 공격 채널
+	case ETraceChannelType::Any:
+		return ECC_GameTraceChannel3; // 일반 공격 채널
+	default:
+		return ECollisionChannel::ECC_Pawn;
+	}
 }
 
 void ULDCombatComponent::ServerRPC_AttackTraceStart_Implementation()
@@ -307,7 +359,7 @@ void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitRe
 			}
 
 			HitActors.Add(HitActor);
-			OnWeaponHit(Hit);
+			OnAttackHit(Hit);
 		}
 	}
 }

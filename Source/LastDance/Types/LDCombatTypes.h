@@ -5,9 +5,17 @@
 #include "CoreMinimal.h"
 #include "LDCombatTypes.generated.h"
 
+UENUM(BlueprintType)
+enum class ETraceChannelType : uint8
+{
+	Player		UMETA(DisplayName = "플레이어가 공격"),
+	Enemy		UMETA(DisplayName = "적이 공격"),
+	Any			UMETA(DisplayName = "히트 대상 아무나")
+};
+
 
 UENUM(BlueprintType)
-enum class EWeaponTraceType : uint8
+enum class EAttackTraceType : uint8
 {
 	Line        UMETA(DisplayName = "Line Trace (얇은 검, 도)"),
 	Sphere      UMETA(DisplayName = "Sphere Sweep (일반 무기)"),
@@ -15,7 +23,7 @@ enum class EWeaponTraceType : uint8
 };
 
 USTRUCT()
-struct FWeaponTraceSample
+struct FAttackTraceSample
 {
 	GENERATED_BODY()
 
@@ -27,12 +35,12 @@ struct FWeaponTraceSample
 };
 
 USTRUCT()
-struct FWeaponTraceParams
+struct FAttackTraceParams
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
-	EWeaponTraceType TraceType = EWeaponTraceType::Sphere;
+	EAttackTraceType TraceType = EAttackTraceType::Sphere;
 
 	UPROPERTY()
 	float SphereRadius = 5.0f;

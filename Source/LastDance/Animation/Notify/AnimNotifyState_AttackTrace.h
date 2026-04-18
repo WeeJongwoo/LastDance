@@ -25,16 +25,19 @@ public:
 
     // 충돌 검사 타입
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace Settings")
-    EWeaponTraceType TraceType = EWeaponTraceType::Sphere;
+    EAttackTraceType TraceType = EAttackTraceType::Sphere;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace Settings")
+	ETraceChannelType Channel = ETraceChannelType::Player;
 
     // Sphere Sweep 반경 (TraceType이 Sphere일 때만 사용)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace Settings",
-        meta = (EditCondition = "TraceType == EWeaponTraceType::Sphere", EditConditionHides))
+        meta = (EditCondition = "TraceType == EAttackTraceType::Sphere", EditConditionHides))
     float SphereRadius = 5.0f;
 
     // Box Sweep 크기 (TraceType이 Box일 때만 사용)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace Settings",
-        meta = (EditCondition = "TraceType == EWeaponTraceType::Box", EditConditionHides))
+        meta = (EditCondition = "TraceType == EAttackTraceType::Box", EditConditionHides))
     FVector BoxHalfSize = FVector(10.0f, 10.0f, 10.0f);
 
     // 애니메이션 프레임당 몇 번 검사할지

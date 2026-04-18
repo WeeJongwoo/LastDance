@@ -130,7 +130,7 @@ void UAnimNotifyState_AttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, 
 	int32 TotalSamples = SkippedFrames * SamplesPerFrame;
 
 	// 애니메이션에서 소켓 위치 샘플링하여 배열 생성
-	TArray<FWeaponTraceSample> Samples;
+	TArray<FAttackTraceSample> Samples;
 	Samples.Reserve(TotalSamples + 1);
 
 	for (int32 i = 0; i <= TotalSamples; ++i)
@@ -138,7 +138,7 @@ void UAnimNotifyState_AttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, 
 		float Alpha = (float)i / (float)TotalSamples;
 		float SampleTime = FMath::Lerp(PrevTime, CurrentTime, Alpha);
 
-		FWeaponTraceSample Sample;
+		FAttackTraceSample Sample;
 
 		if (!GetSocketLocationAtTime(MeshComp, AnimSequence, SampleTime, StartSocketName, Sample.StartLocation))
 			continue;
@@ -150,14 +150,14 @@ void UAnimNotifyState_AttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, 
 	}
 
 	// CombatComponent에 트레이스 실행 위임
-	FWeaponTraceParams Params;
+	FAttackTraceParams Params;
 	Params.TraceType = TraceType;
 	Params.SphereRadius = SphereRadius;
 	Params.BoxHalfSize = BoxHalfSize;
 	Params.bUseBladeSurface = bUseBladeSurface;
 	Params.bShowDebugTrace = bShowDebugTrace;
 
-	CombatComp->ExecuteAttackTraceSamples(Samples, Params);
+	CombatComp->ExecuteAttackTraceSamples(Samples, Params, Channel);
 
 	LastCheckedFrame[MeshComp] = CurrentFrame;
 }

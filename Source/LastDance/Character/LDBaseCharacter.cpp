@@ -38,6 +38,17 @@ ALDBaseCharacter::ALDBaseCharacter()
 void ALDBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		// 물리 틱 1회 후 착지 완료 위치를 강제 전파
+		GetWorldTimerManager().SetTimerForNextTick(
+			FTimerDelegate::CreateWeakLambda(this, [this]()
+				{
+					ForceNetUpdate();
+				})
+		);
+	}
 	
 }
 
