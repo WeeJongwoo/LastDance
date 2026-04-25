@@ -13,6 +13,8 @@
 #include "Log/LDLog.h"
 #include "Player/LDPlayerState.h"
 #include "Component/LDStatComponent.h"
+#include "GameFramework/GameStateBase.h"
+#include "Components/CapsuleComponent.h"
 
 ALDPlayerCharacter::ALDPlayerCharacter()
 {
@@ -45,6 +47,7 @@ void ALDPlayerCharacter::BeginPlay()
 	{
 		Subsystem->AddMappingContext(DefaultMappingContext, 0);
 	}
+
 }
 
 void ALDPlayerCharacter::Tick(float DeltaTime)
@@ -117,10 +120,10 @@ void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 		bCanAttack = false;
 		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 
-		PlayAttackMontage();
+		PlayAttackMontage(0.0f);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if(AnimInstance)
+		if (AnimInstance)
 		{
 			FOnMontageEnded MontageEndedDelegate;
 			MontageEndedDelegate.BindWeakLambda(this, [this](UAnimMontage* Montage, bool bInterrupted)
@@ -142,13 +145,53 @@ void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 	}
 }
 
-void ALDPlayerCharacter::PlayAttackMontage()
+void ALDPlayerCharacter::OnAttackHit(const FHitResult& HitResult)
+{
+	AActor* HitActor = HitResult.GetActor();
+	if (!IsValid(HitActor) || !StatComponent) return;
+
+	// 거리 계산 (캡슐 반경 보정)
+	float Distance;
+
+	if (ACharacter* HitChar = Cast<ACharacter>(HitActor))
+	{
+		float CapsuleR = HitChar->GetCapsuleComponent()->GetScaledCapsuleRadius();
+		Distance = FVector::Distance(GetActorLocation(), HitChar->GetActorLocation()) - CapsuleR;
+	}
+	else
+	{
+		Distance = FVector::Distance(GetActorLocation(), HitResult.ImpactPoint);
+	}
+
+	if (Distance > StatComponent->GetAttackRange() * 1.2f)
+	{
+		return;
+	}
+
+#if ENABLE_DRAW_DEBUG
+	if (UWorld* World = GetWorld())
+	{
+		DrawDebugSphere(World, HitResult.ImpactPoint, 15.0f, 12, FColor::Green, false, 2.0f);
+	}
+#endif
+
+	// 사망 체크 + 데미지는 베이스 호출로 위임
+	Super::OnAttackHit(HitResult);
+
+	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s (ATK: %.1f)"), *HitActor->GetName(), StatComponent->GetATK());
+}
+
+void ALDPlayerCharacter::PlayAttackMontage(float TimeDiff)
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && IsValid(AttackMontage))
 	{
-		AnimInstance->StopAllMontages(0.0f);
-		AnimInstance->Montage_Play(AttackMontage);
+		if (AttackMontage->GetPlayLength() > TimeDiff)
+		{
+			AnimInstance->StopAllMontages(0.0f);
+			AnimInstance->Montage_Play(AttackMontage, 1.0f, EMontagePlayReturnType::MontageLength, TimeDiff);
+		}
+
 	}
 }
 
@@ -172,9 +215,17 @@ bool ALDPlayerCharacter::ServerRPC_Attack_Validate()
 
 void ALDPlayerCharacter::ServerRPC_Attack_Implementation()
 {
+	if (!bCanAttack)
+	{
+		return;
+	}
+
 	bCanAttack = false;
 	OnRep_CanAttack();
-	MulticastRPC_PlayAttackMontage(this);
+
+	float ServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+
+	MulticastRPC_PlayAttackMontage(ServerTime);
 }
 
 
@@ -184,10 +235,13 @@ void ALDPlayerCharacter::ServerRPC_AttackEnd_Implementation()
 	OnRep_CanAttack();
 }
 
-void ALDPlayerCharacter::MulticastRPC_PlayAttackMontage_Implementation(ALDPlayerCharacter* CharacterToPlay)
+void ALDPlayerCharacter::MulticastRPC_PlayAttackMontage_Implementation(float ServerStartTime)
 {
-	if (!IsLocallyControlled() && !HasAuthority() )
+	if (!IsLocallyControlled())
 	{
-		CharacterToPlay->PlayAttackMontage();
+		float LocalTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		float TimeDiff = LocalTime - ServerStartTime;
+
+		PlayAttackMontage(TimeDiff);
 	}
 }

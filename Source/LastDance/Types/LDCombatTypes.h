@@ -49,8 +49,9 @@ struct FAttackTraceParams
 	FVector BoxHalfSize = FVector(10.0f, 10.0f, 10.0f);
 
 	UPROPERTY()
-	bool bUseBladeSurface = true;
+	bool bUseBladeSurface = false;
 
 	UPROPERTY()
 	bool bShowDebugTrace = false;
 };
+

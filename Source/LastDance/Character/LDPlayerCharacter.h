@@ -29,7 +29,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	void PlayAttackMontage();
+	void PlayAttackMontage(float TimeDiff);
 protected:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -40,14 +40,16 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void Attack(const FInputActionValue& Value);
 
+	void OnAttackHit(const FHitResult& HitResult) override;
+
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPC_Attack();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_AttackEnd();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastRPC_PlayAttackMontage(ALDPlayerCharacter* CharacterToPlay);
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastRPC_PlayAttackMontage(float ServerStartTime);
 
 	UFUNCTION()
 	void OnRep_CanAttack();

@@ -44,6 +44,10 @@ public:
 	UFUNCTION(BlueprintPure)
 	bool IsDead() const { return bIsDead; }
 
+	float GetAttackRange() const { return AttackRange; }
+
+	void SetAttackRange(float NewRange);
+
 	UPROPERTY(BlueprintAssignable)
 	FOnCurrentHPChanged OnCurrentHPChanged;
 
@@ -77,6 +81,9 @@ protected:
 
 	UPROPERTY(Replicated)
 	float DEF = 5.0f;
+
+	UPROPERTY(Replicated)
+	float AttackRange = 300.0f;
 
 	uint8 bStatsInitialized : 1;
 	

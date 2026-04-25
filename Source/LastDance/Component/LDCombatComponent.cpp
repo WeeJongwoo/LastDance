@@ -8,8 +8,7 @@
 #include "GameFramework/Character.h"
 #include "Log/LDLog.h"
 #include "Net/UnrealNetwork.h"
-#include "Character/LDBaseCharacter.h"
-#include "Component/LDStatComponent.h"
+
 
 
 
@@ -96,33 +95,24 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FAttackTraceSamp
 	}
 }
 
-bool ULDCombatComponent::PerformTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params, TArray<FHitResult>& OutHits)
+void ULDCombatComponent::PerformAttackTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params)
 {
+	TArray<FHitResult> HitResults;
+
 	UWorld* World = GetWorld();
-	if (!World) return false;
+	if (!World)
+	{
+		return;
+	}
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
 	QueryParams.bTraceComplex = false;
 	QueryParams.bReturnPhysicalMaterial = false;
 
-	PerformSingleTrace(World, Start, End,  QueryParams, Channel, Params, OutHits);
+	PerformSingleTrace(World, Start, End, QueryParams, Channel, Params, HitResults);
 
-#if ENABLE_DRAW_DEBUG
-	if (Params.bShowDebugTrace)
-	{
-		FColor DebugColor = (OutHits.Num() > 0) ? FColor::Green : FColor::Red;
-		DrawDebugLine(World, Start, End, DebugColor, false, 2.0f, 0, 2.0f);
-	}
-#endif
-
-	return OutHits.Num() > 0;
-}
-
-void ULDCombatComponent::PerformAttackTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params)
-{
-	TArray<FHitResult> HitResults;
-	if (!PerformTrace(Start, End, Channel, Params, HitResults))
+	if (HitResults.Num() == 0)
 	{
 		return;
 	}
@@ -199,9 +189,11 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 	if (!World)
 		return;
 
+	TArray<FHitResult> HitResults;
+
 	auto TraceAndProcess = [&](const FVector& Start, const FVector& End)
 		{
-			TArray<FHitResult> HitResults;
+			
 			PerformSingleTrace(World, Start, End, QueryParams, Channel, Params, HitResults);
 			ProcessHits(HitResults);
 
@@ -238,50 +230,6 @@ void ULDCombatComponent::ProcessHits(const TArray<FHitResult>& HitResults)
 	ServerRPC_ProcessHit(HitResults);
 }
 
-void ULDCombatComponent::OnAttackHit(const FHitResult& Hit)
-{
-	AActor* HitActor = Hit.GetActor();
-	if (!HitActor)
-	{
-		return;
-	}
-
-	AActor* OwnerActor = GetOwner();
-
-	// 공격자 ATK 반영
-	float AttackerATK = 0.0f;
-	if (ALDBaseCharacter* OwnerChar = Cast<ALDBaseCharacter>(OwnerActor))
-	{
-		if (ULDStatComponent* Stats = OwnerChar->GetStatComponent())
-		{
-			AttackerATK = Stats->GetATK();
-		}
-	}
-
-	AController* InstigatorController = nullptr;
-	if (APawn* OwnerPawn = Cast<APawn>(OwnerActor))
-	{
-		InstigatorController = OwnerPawn->GetController();
-	}
-
-	UGameplayStatics::ApplyDamage(
-		HitActor,
-		AttackerATK,
-		InstigatorController,
-		OwnerActor,
-		UDamageType::StaticClass()
-	);
-
-#if ENABLE_DRAW_DEBUG
-	if (UWorld* World = GetWorld())
-	{
-		DrawDebugSphere(World, Hit.ImpactPoint, 15.0f, 12, FColor::Green, false, 2.0f);
-	}
-#endif
-
-	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s (ATK: %.1f)"), *HitActor->GetName(), AttackerATK);
-}
-
 ECollisionChannel ULDCombatComponent::GetCollisionChannel(ETraceChannelType Channel) const
 {
 	switch (Channel)
@@ -309,12 +257,6 @@ void ULDCombatComponent::ServerRPC_AttackTraceEnd_Implementation()
 
 void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitResult>& HitResults)
 {
-	ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
-	if (!OwnerCharacter)
-	{
-		return;
-	}
-
 	for (const FHitResult& Hit : HitResults)
 	{
 		AActor* HitActor = Hit.GetActor();
@@ -323,43 +265,10 @@ void ULDCombatComponent::ServerRPC_ProcessHit_Implementation(const TArray<FHitRe
 			continue;
 		}
 
-		ACharacter* HitCharacter = Cast<ACharacter>(HitActor);
-		
-		bool HitCheck = false;
-		if (HitCharacter)
+		if (!HitActors.Contains(HitActor))
 		{
-			/*UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-			if (!AnimInstance || !AnimInstance->IsAnyMontagePlaying())
-			{
-				return;
-			}*/
-
-			FVector OwnerLocation = GetOwner()->GetActorLocation();
-			FVector HitActorLocation = HitCharacter->GetActorLocation();
-			float HitCharacterCapsuleRadius = HitCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
-
-			float Distance = FVector::Distance(OwnerLocation, HitActorLocation) - HitCharacterCapsuleRadius;
-
-			HitCheck = (AttackRange > Distance);
-		}
-		else
-		{
-			HitCheck = (AttackRange > FVector::Distance(GetOwner()->GetActorLocation(), Hit.ImpactPoint));
-		}
-
-
-		if (HitCheck && !HitActors.Contains(HitActor))
-		{
-			if (ALDBaseCharacter* HitBaseChar = Cast<ALDBaseCharacter>(HitActor))
-			{
-				if (HitBaseChar->GetStatComponent() && HitBaseChar->GetStatComponent()->IsDead())
-				{
-					continue;
-				}
-			}
-
 			HitActors.Add(HitActor);
-			OnAttackHit(Hit);
+			OnAttackHitDelegate.Execute(Hit);
 		}
 	}
 }

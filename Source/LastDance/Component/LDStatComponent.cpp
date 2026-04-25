@@ -71,6 +71,14 @@ float ULDStatComponent::ApplyDamage(float RawDamage)
 	return ActualDamage;
 }
 
+void ULDStatComponent::SetAttackRange(float NewRange)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		AttackRange = NewRange;
+	}
+}
+
 void ULDStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

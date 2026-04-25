@@ -7,6 +7,8 @@
 #include "Types/LDCombatTypes.h"
 #include "LDCombatComponent.generated.h"
 
+DECLARE_DELEGATE_OneParam(FOnAttackHitDelegate, const FHitResult&);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class LASTDANCE_API ULDCombatComponent : public UActorComponent
 {
@@ -22,10 +24,11 @@ public:
 	// AnimNotify에서 호출: 샘플 배열로 트레이스 실행
 	void ExecuteAttackTraceSamples(const TArray<FAttackTraceSample>& Samples, const FAttackTraceParams& Params, ETraceChannelType Channel);
 
-	bool PerformTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params, TArray<FHitResult>& OutHits);
 	void PerformAttackTrace(const FVector& Start, const FVector& End, ETraceChannelType Channel, const FAttackTraceParams& Params);
 
 	virtual void InitializeComponent() override;
+
+	FOnAttackHitDelegate OnAttackHitDelegate;
 
 private:
 	// 단일 충돌 검사 수행 (타입에 따라 Line/Sphere/Box)
@@ -40,9 +43,6 @@ private:
 
 	//클라이언트에서 히트 검사 호출
 	void ProcessHits(const TArray<FHitResult>& HitResults);
-
-	//서버에서만 호출
-	void OnAttackHit(const FHitResult& Hit);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_ProcessHit(const TArray<FHitResult>& HitResults);
@@ -61,6 +61,4 @@ protected:
 	TSet<AActor*> HitActors;
 
 	bool bAttackTraceActive = false;
-		
-	float AttackRange = 300.0f; // 공격 범위 (예시값)
 };

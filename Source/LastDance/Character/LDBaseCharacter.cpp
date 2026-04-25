@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Component/LDStatComponent.h"
 #include "Log/LDLog.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ALDBaseCharacter::ALDBaseCharacter()
@@ -48,6 +49,11 @@ void ALDBaseCharacter::BeginPlay()
 					ForceNetUpdate();
 				})
 		);
+
+		if (IsValid(CombatComponent))
+		{
+			CombatComponent->OnAttackHitDelegate.BindUObject(this, &ALDBaseCharacter::OnAttackHit);
+		}
 	}
 	
 }
@@ -69,6 +75,25 @@ void ALDBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 ULDCombatComponent* ALDBaseCharacter::GetCombatComponent() const
 {
 	return CombatComponent;
+}
+
+void ALDBaseCharacter::OnAttackHit(const FHitResult& HitResult)
+{
+	AActor* HitActor = HitResult.GetActor();
+	if (!IsValid(HitActor) || !IsValid(StatComponent)) 
+	{ 
+		return; 
+	}
+
+	if (ALDBaseCharacter* HitChar = Cast<ALDBaseCharacter>(HitActor))
+	{
+		if (HitChar->GetStatComponent() && HitChar->GetStatComponent()->IsDead())
+		{
+			return;
+		}
+	}
+
+	UGameplayStatics::ApplyDamage(HitActor, StatComponent->GetATK(), GetController(), this, UDamageType::StaticClass());
 }
 
 float ALDBaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

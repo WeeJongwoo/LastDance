@@ -42,6 +42,8 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPC_HandleDeath();
 
+	virtual void OnAttackHit(const FHitResult& HitResult);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<ULDCombatComponent> CombatComponent;
