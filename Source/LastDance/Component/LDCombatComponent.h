@@ -39,7 +39,7 @@ private:
 	// 검의 면적을 고려한 Sweep (대각선 포함)
 	void PerformBladeSurfaceSweep(UWorld* World,
 		const FAttackTraceSample& Prev, const FAttackTraceSample& Current,
-		const FCollisionQueryParams& QueryParams, const FAttackTraceParams& Params, ETraceChannelType Channel);
+		const FCollisionQueryParams& QueryParams, const FAttackTraceParams& Params, ETraceChannelType Channel, TArray<FHitResult>& OutResult);
 
 	//클라이언트에서 히트 검사 호출
 	void ProcessHits(const TArray<FHitResult>& HitResults);

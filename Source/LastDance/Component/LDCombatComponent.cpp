@@ -10,8 +10,6 @@
 #include "Net/UnrealNetwork.h"
 
 
-
-
 ULDCombatComponent::ULDCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -70,18 +68,20 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FAttackTraceSamp
 	QueryParams.bTraceComplex = false;
 	QueryParams.bReturnPhysicalMaterial = false;
 
+	TArray<FHitResult> HitResults;
+
 	for (int32 i = 0; i < Samples.Num(); ++i)
 	{
 		const FAttackTraceSample& Sample = Samples[i];
 
 		if (Params.bUseBladeSurface && i > 0)
 		{
-			PerformBladeSurfaceSweep(World, Samples[i - 1], Sample, QueryParams, Params, Channel);
+			PerformBladeSurfaceSweep(World, Samples[i - 1], Sample, QueryParams, Params, Channel, HitResults);
 		}
 		else
 		{
-			TArray<FHitResult> HitResults;
-			PerformSingleTrace(World, Sample.StartLocation, Sample.EndLocation, QueryParams, Channel,Params, HitResults);
+			TArray<FHitResult> SampleHitResults;
+			PerformSingleTrace(World, Sample.StartLocation, Sample.EndLocation, QueryParams, Channel,Params, SampleHitResults);
 
 #if ENABLE_DRAW_DEBUG
 			if (Params.bShowDebugTrace)
@@ -89,9 +89,26 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FAttackTraceSamp
 				DrawDebugLine(World, Sample.StartLocation, Sample.EndLocation, FColor::Cyan, false, 0.5f, 0, 1.0f);
 			}
 #endif
-
-			ProcessHits(HitResults);
+			HitResults.Append(MoveTemp(SampleHitResults));
 		}
+	}
+
+	if (HitResults.Num() > 0)
+	{
+		TSet<AActor*> SeenLocal;
+		TArray<FHitResult> Unique;
+
+		for (const FHitResult& H : HitResults)
+		{
+			AActor* A = H.GetActor();
+			if (A && !SeenLocal.Contains(A))
+			{
+				SeenLocal.Add(A);
+				Unique.Add(H);
+			}
+		}
+
+		ProcessHits(Unique);
 	}
 }
 
@@ -184,18 +201,19 @@ void ULDCombatComponent::PerformSingleTrace(UWorld* World, const FVector& Start,
 
 void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 	const FAttackTraceSample& Prev, const FAttackTraceSample& Current,
-	const FCollisionQueryParams& QueryParams, const FAttackTraceParams& Params, ETraceChannelType Channel)
+	const FCollisionQueryParams& QueryParams, const FAttackTraceParams& Params, ETraceChannelType Channel, TArray<FHitResult>& OutResult)
 {
 	if (!World)
+	{
 		return;
-
-	TArray<FHitResult> HitResults;
+	}
 
 	auto TraceAndProcess = [&](const FVector& Start, const FVector& End)
 		{
-			
+			TArray<FHitResult> HitResults;
 			PerformSingleTrace(World, Start, End, QueryParams, Channel, Params, HitResults);
-			ProcessHits(HitResults);
+
+			OutResult.Append(MoveTemp(HitResults));
 
 #if ENABLE_DRAW_DEBUG
 			if (Params.bShowDebugTrace)
