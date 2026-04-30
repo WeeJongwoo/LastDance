@@ -17,7 +17,7 @@ void ALDEnemyCharacter::BeginPlay()
 	// 서버에서만 스탯 초기화
 	if (HasAuthority() && StatComponent)
 	{
-		StatComponent->InitializeStats(DefaultStats);
+		SetupCharacterStats();
 	}
 }
 

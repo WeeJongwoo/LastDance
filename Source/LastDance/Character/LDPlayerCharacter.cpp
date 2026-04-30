@@ -81,14 +81,7 @@ void ALDPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	if (ALDPlayerState* PS = GetPlayerState<ALDPlayerState>())
-	{
-		if (StatComponent)
-		{
-			StatComponent->InitializeStats(PS->GetBaseStats());
-		}
-	}
-
+	SetupCharacterStats();
 }
 
 void ALDPlayerCharacter::Move(const FInputActionValue& Value)
@@ -204,6 +197,18 @@ void ALDPlayerCharacter::OnRep_CanAttack()
 	else
 	{
 		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
+}
+
+void ALDPlayerCharacter::SetupCharacterStats()
+{
+
+	if (ALDPlayerState* PS = GetPlayerState<ALDPlayerState>())
+	{
+		if (StatComponent)
+		{
+			StatComponent->InitializeStats(PS->GetBaseStats());
+		}
 	}
 }
 

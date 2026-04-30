@@ -58,6 +58,14 @@ void ALDBaseCharacter::BeginPlay()
 	
 }
 
+void ALDBaseCharacter::SetupCharacterStats()
+{
+	if (IsValid(DefaultStatData) && IsValid(StatComponent))
+	{
+		StatComponent->InitializeStats(DefaultStatData->CharacterStats);
+	}
+}
+
 // Called every frame
 void ALDBaseCharacter::Tick(float DeltaTime)
 {

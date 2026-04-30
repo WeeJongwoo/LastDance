@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
-#include "Types/LDCharacterStats.h"
+#include "Data/LDCharacterStatDataAsset.h"
 #include "LDPlayerState.generated.h"
 
 /**
@@ -18,15 +18,14 @@ class LASTDANCE_API ALDPlayerState : public APlayerState
 public:
 	ALDPlayerState();
 
-	void SetBaseStats(const FLDCharacterStats& InStats);
-	const FLDCharacterStats& GetBaseStats() const { return BaseStats; }
+	const FLDCharacterStats& GetBaseStats() const { return BaseStatData->CharacterStats; }
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 	UPROPERTY(Replicated, EditAnywhere)
-	FLDCharacterStats BaseStats;
+	TObjectPtr<ULDCharacterStatDataAsset> BaseStatData;
 	
 	
 };

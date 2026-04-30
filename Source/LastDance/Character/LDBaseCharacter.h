@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Interface/LDCombatInterface.h"
 #include "Interface/LDStatInterface.h"
+#include "Data/LDCharacterStatDataAsset.h"
 #include "LDBaseCharacter.generated.h"
 
 
@@ -27,6 +28,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void SetupCharacterStats();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -50,4 +52,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	TObjectPtr<ULDStatComponent> StatComponent;
+
+	UPROPERTY(EditAnywhere, Category = "Stats")
+	TObjectPtr<ULDCharacterStatDataAsset> DefaultStatData;
 };

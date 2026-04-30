@@ -54,6 +54,8 @@ protected:
 	UFUNCTION()
 	void OnRep_CanAttack();
 
+	virtual void SetupCharacterStats() override;
+
 protected:
 
 	UPROPERTY(EditAnywhere)
