@@ -4,10 +4,14 @@
 #include "Character/LDEnemyCharacter.h"
 #include "Component/LDStatComponent.h"
 #include "Log/LDLog.h"
+#include "AI/LDAIController.h"
 
 ALDEnemyCharacter::ALDEnemyCharacter()
 {
 	SetReplicates(true);
+
+	AIControllerClass = ALDAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void ALDEnemyCharacter::BeginPlay()

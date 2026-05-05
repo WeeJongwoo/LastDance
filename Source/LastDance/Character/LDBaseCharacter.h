@@ -38,6 +38,8 @@ public:
 
 	virtual ULDCombatComponent* GetCombatComponent() const override;
 
+	bool IsDead() const { return IsValid(StatComponent) ? StatComponent->IsDead() : true; }
+
 protected:
 	virtual void HandleDeath();
 

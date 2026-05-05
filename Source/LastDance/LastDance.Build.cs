@@ -18,8 +18,10 @@ public class LastDance : ModuleRules
 			"EnhancedInput",
             "NavigationSystem",
             "AIModule",
-            "GameplayTasks" 
-		});
+            "GameplayTasks" ,
+			"UMG",
+            "Niagara"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
