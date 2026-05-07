@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Combat/LDHarzardActor.h"
+#include "Combat/LDHazardActor.h"
 #include "Data/LDHazardDataAsset.h"
 #include "Components/ShapeComponent.h"
 #include "Components/SphereComponent.h"
@@ -14,7 +14,7 @@
 
 
 // Sets default values
-ALDHarzardActor::ALDHarzardActor()
+ALDHazardActor::ALDHazardActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -29,7 +29,7 @@ ALDHarzardActor::ALDHarzardActor()
 
 }
 
-void ALDHarzardActor::InitializeFromData(const ULDHazardDataAsset* InData)
+void ALDHazardActor::InitializeFromData(const ULDHazardDataAsset* InData)
 {
 	if (!InData) return;
 	HazardData = InData;
@@ -86,7 +86,7 @@ void ALDHarzardActor::InitializeFromData(const ULDHazardDataAsset* InData)
 }
 
 // Called when the game starts or when spawned
-void ALDHarzardActor::BeginPlay()
+void ALDHazardActor::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -102,14 +102,14 @@ void ALDHarzardActor::BeginPlay()
 
 	if (HazardData && HazardData->TelegraphDuration > 0.0f)
 	{
-		GetWorldTimerManager().SetTimer(TelegraphHandle, this, &ALDHarzardActor::StartApplyingDamage, HazardData->TelegraphDuration, false);
+		GetWorldTimerManager().SetTimer(TelegraphHandle, this, &ALDHazardActor::StartApplyingDamage, HazardData->TelegraphDuration, false);
 		return;
 	}
 
 	StartApplyingDamage();
 }
 
-void ALDHarzardActor::EndPlay(const EEndPlayReason::Type Reason)
+void ALDHazardActor::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(DamageTickHandle);
 	GetWorldTimerManager().ClearTimer(LifetimeHandle);
@@ -118,7 +118,7 @@ void ALDHarzardActor::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
-bool ALDHarzardActor::ShouldDamageActor(AActor* Target) const
+bool ALDHazardActor::ShouldDamageActor(AActor* Target) const
 {
 	if (!Target || Target == this) return false;
 	if (Target == GetInstigator()) return false;
@@ -130,15 +130,15 @@ bool ALDHarzardActor::ShouldDamageActor(AActor* Target) const
 	return true;
 }
 
-void ALDHarzardActor::OnHazardActivated()
+void ALDHazardActor::OnHazardActivated()
 {
 }
 
-void ALDHarzardActor::OnHazardDestroyed()
+void ALDHazardActor::OnHazardDestroyed()
 {
 }
 
-void ALDHarzardActor::StartApplyingDamage()
+void ALDHazardActor::StartApplyingDamage()
 {
 	ApplyDamageTick();
 
@@ -151,18 +151,18 @@ void ALDHarzardActor::StartApplyingDamage()
 	// 데미지 적용
 	if (HazardData && HazardData->TickInterval > 0.f)
 	{
-		GetWorldTimerManager().SetTimer(DamageTickHandle, this,&ALDHarzardActor::ApplyDamageTick, HazardData->TickInterval, true);  // 첫 틱 즉시
+		GetWorldTimerManager().SetTimer(DamageTickHandle, this,&ALDHazardActor::ApplyDamageTick, HazardData->TickInterval, true);  // 첫 틱 즉시
 	}
 
 	// 라이프타임
 	if (HazardData && HazardData->Lifetime > 0.f)
 	{
-		GetWorldTimerManager().SetTimer(LifetimeHandle, this, &ALDHarzardActor::OnLifetimeExpired, HazardData->Lifetime, false);
+		GetWorldTimerManager().SetTimer(LifetimeHandle, this, &ALDHazardActor::OnLifetimeExpired, HazardData->Lifetime, false);
 	}
 	
 }
 
-void ALDHarzardActor::ApplyDamageTick()
+void ALDHazardActor::ApplyDamageTick()
 {
 	
 	if (!OverlapShape || !HazardData)
@@ -186,7 +186,7 @@ void ALDHarzardActor::ApplyDamageTick()
 	}
 }
 
-void ALDHarzardActor::OnLifetimeExpired()
+void ALDHazardActor::OnLifetimeExpired()
 {
 	if (HasAuthority())
 	{

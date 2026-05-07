@@ -4,20 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "LDHarzardActor.generated.h"
+#include "LDHazardActor.generated.h"
 
 class UShapeComponent;
 class UDecalComponent;
 class ULDHazardDataAsset;
 
 UCLASS()
-class LASTDANCE_API ALDHarzardActor : public AActor
+class LASTDANCE_API ALDHazardActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	ALDHarzardActor();
+	ALDHazardActor();
 
     // 서버에서 SpawnActorDeferred 직후 호출
     void InitializeFromData(const ULDHazardDataAsset* InData);
