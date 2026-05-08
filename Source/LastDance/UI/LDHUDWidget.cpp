@@ -6,6 +6,8 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Log/LDLog.h"
 #include "Interface/LDStatInterface.h"
+#include "Character/LDBossCharacter.h"
+#include "UI/LDBossHpBarWidget.h"
 
 ULDHUDWidget::ULDHUDWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -55,4 +57,27 @@ void ULDHUDWidget::BindToStatComponent(APawn* Pawn)
 			UpdateHPBar(StatComponent->GetCurrentHP(), StatComponent->GetMaxHP());
 		}
 	}
+}
+
+void ULDHUDWidget::ShowBossBar(ALDBossCharacter* Boss)
+{
+
+	if (!Boss || !WBP_BossHpBar)
+	{
+		return;
+	}
+
+	WBP_BossHpBar->BindToBoss(Boss);
+	WBP_BossHpBar->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void ULDHUDWidget::HideBossBar()
+{
+	if (!WBP_BossHpBar)
+	{
+		return;
+	}
+
+	WBP_BossHpBar->Unbind();
+	WBP_BossHpBar->SetVisibility(ESlateVisibility::Collapsed);
 }

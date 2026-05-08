@@ -9,6 +9,7 @@
 class UInputMappingContext;
 class UInputAction;
 class ULDHUDWidget;
+class ALDBossCharacter;
 
 /**
  * 
@@ -17,7 +18,16 @@ UCLASS()
 class LASTDANCE_API ALDPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
+public:
+
+	ALDPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_NotifyRecognizedByBoss(ALDBossCharacter* Boss);
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_NotifyBossDefeated(ALDBossCharacter* Boss);
 
 protected:
 
@@ -32,6 +42,8 @@ protected:
 	UFUNCTION()
 	void UpdateHP(float NewHP, float MaxHP);
 
+	void ApplyPendingBossToHUD();
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
@@ -42,4 +54,10 @@ protected:
 
 
 	TObjectPtr<ULDHUDWidget> HUDWidget;
+
+	uint8 bRegisteredWithGameMode : 1;
+
+	UPROPERTY()
+	TObjectPtr<ALDBossCharacter> PendingBoss;
+
 };

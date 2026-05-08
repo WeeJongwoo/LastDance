@@ -8,6 +8,8 @@
 
 
 class ULDHpBarWidget;
+class ALDBossCharacter;
+class ULDBossHpBarWidget;
 /**
  * 
  */
@@ -25,9 +27,16 @@ public:
 	virtual void NativeConstruct() override;
 
 	void BindToStatComponent(APawn* Pawn);
+
+	void ShowBossBar(ALDBossCharacter* Boss);
+	void HideBossBar();
 	
 protected:
 	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
 	TObjectPtr<ULDHpBarWidget> WBP_HPBar;
+	
+
+	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
+	TObjectPtr<ULDBossHpBarWidget> WBP_BossHpBar;
 	
 };

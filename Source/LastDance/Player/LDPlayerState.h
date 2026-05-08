@@ -7,9 +7,8 @@
 #include "Data/LDCharacterStatDataAsset.h"
 #include "LDPlayerState.generated.h"
 
-/**
- * 
- */
+class ALDBossCharacter;
+
 UCLASS()
 class LASTDANCE_API ALDPlayerState : public APlayerState
 {
