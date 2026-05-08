@@ -6,7 +6,7 @@
 #include "Player/LDPlayerController.h"
 #include "Player/LDPlayerState.h"
 #include "GameMode/LDGameMode.h"
-#include "GameMode/LDGameState.h"
+#include "GameFramework/GameStateBase.h"
 #include "Log/LDLog.h"
 
 ALDBossCharacter::ALDBossCharacter()
@@ -24,10 +24,8 @@ void ALDBossCharacter::BeginPlay()
 
 	if (UWorld* World = GetWorld())
 	{
-		if (ALDGameState* GameState = World->GetGameState<ALDGameState>())
+		if (AGameStateBase* GameState = World->GetGameState<AGameStateBase>())
 		{
-			GameState->SetActiveBoss(this);
-
 			for (APlayerState* PS : GameState->PlayerArray)
 			{
 				if (!PS)
@@ -59,14 +57,6 @@ void ALDBossCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 			GameMode->OnPlayerPossessed.RemoveDynamic(this, &ALDBossCharacter::OnPlayerPossessedHandler);
 			GameMode->OnPlayerLeft.RemoveDynamic(this, &ALDBossCharacter::OnPlayerLeftHandler);
 		}
-
-		if (ALDGameState* GameState = GetWorld() ? GetWorld()->GetGameState<ALDGameState>() : nullptr)
-		{
-			if (GameState->GetActiveBoss() == this)
-			{
-				GameState->SetActiveBoss(nullptr);
-			}
-		}
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -85,13 +75,6 @@ void ALDBossCharacter::HandleDeath()
 		}
 		KnownControllers.Reset();
 
-		if (ALDGameState* GameState = GetWorld()->GetGameState<ALDGameState>())
-		{
-			if (GameState->GetActiveBoss() == this)
-			{
-				GameState->SetActiveBoss(nullptr);
-			}
-		}
 	}
 
 	Super::HandleDeath();

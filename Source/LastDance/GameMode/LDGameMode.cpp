@@ -3,12 +3,10 @@
 
 #include "GameMode/LDGameMode.h"
 #include "Player/LDPlayerController.h"
-#include "GameMode/LDGameState.h"
 #include "Log/LDLog.h"
 
 ALDGameMode::ALDGameMode()
 {
-	GameStateClass = ALDGameState::StaticClass();
 }
 
 void ALDGameMode::NotifyPlayerPossessed(ALDPlayerController* PC)

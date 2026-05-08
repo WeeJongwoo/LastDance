@@ -7,7 +7,6 @@
 #include "Component/LDStatComponent.h"
 #include "Log/LDLog.h"
 #include "GameMode/LDGameMode.h"
-#include "GameMode/LDGameState.h"
 #include "Character/LDBossCharacter.h"
 
 
@@ -34,15 +33,6 @@ void ALDPlayerController::BeginPlay()
 				ApplyPendingBossToHUD();
 			}
 		}
-	}
-
-	if (auto* GS = GetWorld()->GetGameState<ALDGameState>())
-	{
-		LD_LOG(LDLog, Log, TEXT("GameState OK: %s"), *GS->GetName());
-	}
-	else
-	{
-		LD_LOG(LDLog, Warning, TEXT("GameState cast FAILED — GameModeClass 확인 필요"));
 	}
 }
 
