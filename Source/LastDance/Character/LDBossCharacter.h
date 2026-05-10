@@ -4,10 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Character/LDEnemyCharacter.h"
+#include "AI/LDBossPattern.h"
 #include "LDBossCharacter.generated.h"
 
 class ALDPlayerController;
 class ALDPlayerCharacter;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCounterStanceFinished, bool, bTriggered);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackMontageEnded);
 
 UCLASS()
 class LASTDANCE_API ALDBossCharacter : public ALDEnemyCharacter
@@ -17,12 +21,25 @@ class LASTDANCE_API ALDBossCharacter : public ALDEnemyCharacter
 	
 public:
 	ALDBossCharacter();
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	
 	void RegisterController(ALDPlayerController* PC);
 	void UnregisterController(ALDPlayerController* PC);
 
 	TArray<ALDPlayerCharacter*> GetAliveTargetPawns() const;
 
+	void EnterCounterStance();
+	void PlayAttackMontage();
+
+	FOnAttackMontageEnded OnAttackMontageEnded;
+	FOnCounterStanceFinished OnCounterStanceFinished;
+
+	bool IsInCounterStance() const { return bCounterStanceActive; }
+	void ExitCounterStance(bool bTriggered);
+	bool IsCounterSequenceActive() const { return bCounterStanceActive || bIsCounterAttacking; }
+
+	void SetCounterHitEnabled() { bCounterHitEnabled = true; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -35,8 +52,42 @@ protected:
 	UFUNCTION()
 	void OnPlayerLeftHandler(ALDPlayerController* PC);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAttackMontage(FName SectionName);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayCounterMontage();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_JumpToCounterAttackSection();
+
+	void TriggerCounter();
+
+	UFUNCTION()
+	void HandleCounterMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void AttackMontageEndedHandler(UAnimMontage* Montage, bool bInterrupted);
+
 protected:
 
 	UPROPERTY()
 	TArray<TWeakObjectPtr<ALDPlayerController>> KnownControllers;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UAnimMontage> AttackMontage;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> CounterMontage;
+
+	FName CounterWaitSection = "Wait";
+
+	FName CounterAttackSection = "Attack";
+
+	UPROPERTY(EditAnywhere, Category = "Counter", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float CounterDamageMultiplier = 0.3f;
+
+	bool bCounterStanceActive = false;
+	bool bIsCounterAttacking = false;
+	bool bCounterHitEnabled = false;
 };

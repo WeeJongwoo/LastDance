@@ -8,9 +8,24 @@
 #include "GameMode/LDGameMode.h"
 #include "GameFramework/GameStateBase.h"
 #include "Log/LDLog.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
 
 ALDBossCharacter::ALDBossCharacter()
 {
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+}
+
+float ALDBossCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (bCounterHitEnabled && bCounterStanceActive)
+	{
+		const float Reduced = DamageAmount * CounterDamageMultiplier;
+		const float Applied = Super::TakeDamage(Reduced, DamageEvent, EventInstigator, DamageCauser);
+		TriggerCounter();
+		return Applied;
+	}
+	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void ALDBossCharacter::BeginPlay()
@@ -141,6 +156,45 @@ TArray<ALDPlayerCharacter*> ALDBossCharacter::GetAliveTargetPawns() const
 	return Out;
 }
 
+void ALDBossCharacter::EnterCounterStance()
+{
+	if (bCounterStanceActive || bIsCounterAttacking || !CounterMontage) return;
+
+	bCounterStanceActive = true;
+
+	// 모든 머신(서버 + 클라)에서 몽타주 재생
+	Multicast_PlayCounterMontage();
+
+	// 서버에서만 종료 콜백 바인딩 (BTTask 종료 신호용)
+	if (HasAuthority())
+	{
+		if (UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			FOnMontageBlendingOutStarted EndDel;
+			EndDel.BindUObject(this, &ALDBossCharacter::HandleCounterMontageEnded);
+			AnimInst->Montage_SetBlendingOutDelegate(EndDel, CounterMontage);
+		}
+	}
+}
+
+void ALDBossCharacter::PlayAttackMontage()
+{
+	int32 SectionIndex = FMath::RandRange(1, 4);
+	FName AttackSection = FName(*FString::Printf(TEXT("Attack%d"), SectionIndex));
+
+	Multicast_PlayAttackMontage(AttackSection);
+
+	if (HasAuthority())
+	{
+		if (UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			FOnMontageBlendingOutStarted EndDel;
+			EndDel.BindUObject(this, &ALDBossCharacter::AttackMontageEndedHandler);
+			AnimInst->Montage_SetBlendingOutDelegate(EndDel, AttackMontage);
+		}
+	}
+}
+
 void ALDBossCharacter::OnPlayerPossessedHandler(ALDPlayerController* PC)
 {
 	RegisterController(PC);
@@ -149,4 +203,95 @@ void ALDBossCharacter::OnPlayerPossessedHandler(ALDPlayerController* PC)
 void ALDBossCharacter::OnPlayerLeftHandler(ALDPlayerController* PC)
 {
 	UnregisterController(PC);
+}
+
+void ALDBossCharacter::Multicast_PlayAttackMontage_Implementation(FName SectionName)
+{
+	if (!AttackMontage)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInst)
+	{
+		return;
+	}
+
+	AnimInst->Montage_Stop(0.f, AttackMontage);
+	AnimInst->Montage_Play(AttackMontage);
+	AnimInst->Montage_JumpToSection(SectionName, AttackMontage);
+}
+
+void ALDBossCharacter::Multicast_PlayCounterMontage_Implementation()
+{
+	if (!CounterMontage)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInst)
+	{
+		return;
+	}
+
+	AnimInst->Montage_Stop(0.f, CounterMontage);
+	AnimInst->Montage_Play(CounterMontage);
+	AnimInst->Montage_JumpToSection(CounterWaitSection, CounterMontage);
+}
+
+void ALDBossCharacter::Multicast_JumpToCounterAttackSection_Implementation()
+{
+	if (UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		AnimInst->Montage_JumpToSection(CounterAttackSection, CounterMontage);
+	}
+}
+
+void ALDBossCharacter::TriggerCounter()
+{
+	if (!bCounterStanceActive || !bCounterHitEnabled)
+	{
+		return;
+	}
+
+	bCounterStanceActive = false;
+	bCounterHitEnabled = false;
+	bIsCounterAttacking = true;
+
+	Multicast_JumpToCounterAttackSection();
+
+}
+
+void ALDBossCharacter::ExitCounterStance(bool bTriggered)
+{
+	bIsCounterAttacking = false;
+	bCounterStanceActive = false;
+	bCounterHitEnabled = false;
+	OnCounterStanceFinished.Broadcast(bTriggered);
+}
+
+void ALDBossCharacter::HandleCounterMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted) return;
+	if (Montage != CounterMontage) return;
+
+
+	if (bIsCounterAttacking)
+	{
+		ExitCounterStance(true);
+	}
+	if (bCounterStanceActive)
+	{
+		ExitCounterStance(false);
+	}
+}
+
+void ALDBossCharacter::AttackMontageEndedHandler(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted) return;
+	if (Montage != AttackMontage) return;
+
+	OnAttackMontageEnded.Broadcast();
 }
