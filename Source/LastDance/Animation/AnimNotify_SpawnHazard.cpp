@@ -7,6 +7,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/World.h"
+#include "Engine/DataTable.h"
+#include "Data/LDHazardTableRow.h"
 
 void UAnimNotify_SpawnHazard::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -28,7 +30,7 @@ void UAnimNotify_SpawnHazard::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
         return;
     }
 
-    if (!HazardClass || !HazardData)
+    if (!HazardClass || !HazardTable)
     {
         return;
     }
@@ -53,11 +55,28 @@ void UAnimNotify_SpawnHazard::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 
     APawn* InstigatorPawn = Cast<APawn>(Owner);
 
-    ALDHazardActor* Spawned = World->SpawnActorDeferred<ALDHazardActor>(HazardClass, SpawnTransform, 
-        Owner, InstigatorPawn, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+    if (!HazardTable)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("AnimNotify_SpawnHazard: HazardTable not assigned"));
+        return;
+    }
 
-    if (!Spawned) return;
+    const FLDHazardTableRow* Row = HazardTable->FindRow<FLDHazardTableRow>(
+        HazardRowName, TEXT("AnimNotify_SpawnHazard"));
+    if (!Row)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("AnimNotify_SpawnHazard: Row '%s' not found"),
+            *HazardRowName.ToString());
+        return;
+    }
 
-    Spawned->InitializeFromData(HazardData);
-    Spawned->FinishSpawning(SpawnTransform);
+    ALDHazardActor* Spawned = World->SpawnActorDeferred<ALDHazardActor>(
+        HazardClass, SpawnTransform, Owner, InstigatorPawn,
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+    if (Spawned)
+    {
+        Spawned->InitializeFromRow(*Row);
+        Spawned->FinishSpawning(SpawnTransform);
+    }
 }

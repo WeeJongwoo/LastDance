@@ -24,8 +24,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hazard")
 	TSubclassOf<ALDHazardActor> HazardClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hazard")
-	TObjectPtr<ULDHazardDataAsset> HazardData;
+	UPROPERTY(EditAnywhere, Category = "Hazard")
+	TObjectPtr<UDataTable> HazardTable;
+
+	UPROPERTY(EditAnywhere, Category = "Hazard")
+	FName HazardRowName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hazard")
 	FName SpawnSocketName;   

@@ -86,6 +86,11 @@ void ALDPlayerCharacter::PossessedBy(AController* NewController)
 
 void ALDPlayerCharacter::Move(const FInputActionValue& Value)
 {
+	if (IsValid(Controller))
+	{
+		return;
+	}
+
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	const FRotator Rotation = Controller->GetControlRotation();

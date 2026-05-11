@@ -1,0 +1,9 @@
+﻿---,HazardShapeType,SphereRadius,BoxExtent,TelegraphDuration,Lifetime,TickInterval,DamagePerTick,VisualFX,GroundDecal
+Attack1,Box,100,"(X=200, Y=200, Z=1000)",0.5,0,0,5,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Attack2_1,Box,101,"(X=300, Y=300, Z=1000)",0.3,0,0,10,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Attack2_2,Box,102,"(X=500, Y=500, Z=1002)",0.3,0,0,20,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Attack3_1,Box,103,"(X=500, Y=200, Z=1003)",0.3,0,0,15,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Attack3_2,Box,104,"(X=500, Y=300, Z=1004)",0.3,0,0,30,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Attack4_1,Box,105,"(X=200, Y=300, Z=1005)",0.3,0,0,20,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Attack4_2,Box,106,"(X=200, Y=200, Z=1006)",0.3,0,0,5,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'
+Counter,Shere,500,,0.25,0,0,50,,/Script/Engine.MaterialInstanceConstant'/Game/Data/MI_Hazard.MI_Hazard'

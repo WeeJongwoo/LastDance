@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Data/LDHazardTableRow.h"
 #include "LDHazardActor.generated.h"
 
 class UShapeComponent;
@@ -20,7 +21,9 @@ public:
 	ALDHazardActor();
 
     // 서버에서 SpawnActorDeferred 직후 호출
-    void InitializeFromData(const ULDHazardDataAsset* InData);
+    void InitializeFromRow(const FLDHazardTableRow& Row);
+
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	// Called when the game starts or when spawned
@@ -37,6 +40,8 @@ private:
     void ApplyDamageTick();
     void OnLifetimeExpired();
 
+    UFUNCTION()
+    void OnRep_CachedRow();
 protected:
 
     UPROPERTY(VisibleAnywhere)
@@ -48,10 +53,12 @@ protected:
     UPROPERTY(VisibleAnywhere)
     TObjectPtr<UDecalComponent> DecalComp;
 
-    UPROPERTY(EditAnywhere, Category = "Hazard")
-    TObjectPtr<const ULDHazardDataAsset> HazardData;
+    UPROPERTY(ReplicatedUsing = OnRep_CachedRow)
+    FLDHazardTableRow CachedRow;
 
     FTimerHandle DamageTickHandle;
     FTimerHandle LifetimeHandle;
 	FTimerHandle TelegraphHandle;
+
+	bool bRowInitialized = false;
 };
