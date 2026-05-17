@@ -37,6 +37,7 @@ void ULDHUDWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	BindToStatComponent(GetOwningPlayerPawn());
+	HideBossBar();
 }
 
 void ULDHUDWidget::BindToStatComponent(APawn* Pawn)

@@ -131,6 +131,8 @@ void ALDBaseCharacter::HandleDeath()
 {
 	LD_LOG(LDLog, Log, TEXT("Character Died: %s"), *GetName());
 
+	OnDeath.Broadcast(this);
+
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->DisableMovement();
 
@@ -148,6 +150,7 @@ void ALDBaseCharacter::MulticastRPC_HandleDeath_Implementation()
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->DisableMovement();
 
+	GetMesh()->GetAnimInstance()->StopAllMontages(0.0f);
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetAllBodiesSimulatePhysics(true);
 	GetMesh()->SetSimulatePhysics(true);

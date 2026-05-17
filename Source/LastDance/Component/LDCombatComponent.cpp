@@ -83,12 +83,12 @@ void ULDCombatComponent::ExecuteAttackTraceSamples(const TArray<FAttackTraceSamp
 			TArray<FHitResult> SampleHitResults;
 			PerformSingleTrace(World, Sample.StartLocation, Sample.EndLocation, QueryParams, Channel,Params, SampleHitResults);
 
-#if ENABLE_DRAW_DEBUG
-			if (Params.bShowDebugTrace)
-			{
-				DrawDebugLine(World, Sample.StartLocation, Sample.EndLocation, FColor::Cyan, false, 0.5f, 0, 1.0f);
-			}
-#endif
+//#if ENABLE_DRAW_DEBUG
+//			if (Params.bShowDebugTrace)
+//			{
+//				DrawDebugLine(World, Sample.StartLocation, Sample.EndLocation, FColor::Cyan, false, 0.5f, 0, 1.0f);
+//			}
+//#endif
 			HitResults.Append(MoveTemp(SampleHitResults));
 		}
 	}
@@ -215,13 +215,13 @@ void ULDCombatComponent::PerformBladeSurfaceSweep(UWorld* World,
 
 			OutResult.Append(MoveTemp(HitResults));
 
-#if ENABLE_DRAW_DEBUG
-			if (Params.bShowDebugTrace)
-			{
-				FColor DebugColor = (HitResults.Num() > 0) ? FColor::Green : FColor::Red;
-				DrawDebugLine(World, Start, End, DebugColor, false, 2.0f, 0, 2.0f);
-			}
-#endif
+//#if ENABLE_DRAW_DEBUG
+//			if (Params.bShowDebugTrace)
+//			{
+//				FColor DebugColor = (HitResults.Num() > 0) ? FColor::Green : FColor::Red;
+//				DrawDebugLine(World, Start, End, DebugColor, false, 2.0f, 0, 2.0f);
+//			}
+//#endif
 		};
 
 	// 1: 현재 프레임 무기 라인

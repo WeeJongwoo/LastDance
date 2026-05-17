@@ -41,13 +41,15 @@ public:
 
 	void SetCounterHitEnabled() { bCounterHitEnabled = true; }
 
+	FString GetBossName() const { return FString(TEXT("Boss")); }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void HandleDeath() override;
 
-	UFUNCTION()
-	void OnPlayerPossessedHandler(ALDPlayerController* PC);
+	//UFUNCTION()
+	//void OnPlayerPossessedHandler(ALDPlayerController* PC);
 
 	UFUNCTION()
 	void OnPlayerLeftHandler(ALDPlayerController* PC);
@@ -68,6 +70,9 @@ protected:
 
 	UFUNCTION()
 	void AttackMontageEndedHandler(UAnimMontage* Montage, bool bInterrupted);
+
+	void RegistedCharacterDead(ALDBaseCharacter* DeadCharacter);
+
 
 protected:
 

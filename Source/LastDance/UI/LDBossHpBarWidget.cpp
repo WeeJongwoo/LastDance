@@ -47,8 +47,7 @@ void ULDBossHpBarWidget::BindToBoss(ALDBossCharacter* Boss)
 
 	if (BossName)
 	{
-		// 보스 표시 이름. 임시로 액터 이름. 나중에 데이터 에셋에서 끌어와도 좋음.
-		BossName->SetText(FText::FromString(Boss->GetName()));
+		BossName->SetText(FText::FromString(Boss->GetBossName()));
 	}
 }
 

@@ -1,0 +1,1 @@
+.\Binaries\Win64\LastDanceClient.exe -WINDOWED -ResX=800 -ResY=600

@@ -21,7 +21,7 @@ class LASTDANCE_API ALDGameMode : public AGameModeBase
 public:
 	ALDGameMode();
 
-	// PC가 첫 Possess 시 자기 자신을 인자로 호출. 서버 전용.
+	// PC가 Possess 시 자기 자신을 인자로 호출. 서버 전용.
 	void NotifyPlayerPossessed(ALDPlayerController* PC);
 
 	// 진짜로 떠났을 때 (디스커넥트 등)

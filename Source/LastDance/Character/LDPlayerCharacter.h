@@ -56,6 +56,8 @@ protected:
 
 	virtual void SetupCharacterStats() override;
 
+	virtual void HandleDeath() override;
+
 protected:
 
 	UPROPERTY(EditAnywhere)

@@ -29,6 +29,8 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_NotifyBossDefeated(ALDBossCharacter* Boss);
 
+	void ToggleInGameMenu();
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -44,10 +46,14 @@ protected:
 
 	void ApplyPendingBossToHUD();
 
+	void SetInGameMenuVisible(bool bVisible);
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+	TObjectPtr<UInputMappingContext> ControllerMappingContext;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> ToggleMenuAction;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ULDHUDWidget> HUDClass;
@@ -59,5 +65,11 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<ALDBossCharacter> PendingBoss;
+
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class ULDInGameMenuWidget> InGameMenuClass;
+
+	TObjectPtr<class ULDInGameMenuWidget> InGameMenuWidget;
 
 };

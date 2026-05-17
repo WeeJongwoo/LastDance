@@ -9,6 +9,7 @@
 #include "Data/LDCharacterStatDataAsset.h"
 #include "LDBaseCharacter.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCharacterDeath, ALDBaseCharacter*);
 
 UCLASS()
 class LASTDANCE_API ALDBaseCharacter : public ACharacter, public ILDCombatInterface, public ILDStatInterface
@@ -39,6 +40,8 @@ public:
 	virtual ULDCombatComponent* GetCombatComponent() const override;
 
 	bool IsDead() const { return IsValid(StatComponent) ? StatComponent->IsDead() : true; }
+
+	FOnCharacterDeath OnDeath;
 
 protected:
 	virtual void HandleDeath();

@@ -86,7 +86,7 @@ void ALDPlayerCharacter::PossessedBy(AController* NewController)
 
 void ALDPlayerCharacter::Move(const FInputActionValue& Value)
 {
-	if (IsValid(Controller))
+	if (!IsValid(Controller))
 	{
 		return;
 	}
@@ -215,6 +215,13 @@ void ALDPlayerCharacter::SetupCharacterStats()
 			StatComponent->InitializeStats(PS->GetBaseStats());
 		}
 	}
+}
+
+void ALDPlayerCharacter::HandleDeath()
+{
+	GetMesh()->SetVisibility(false);
+
+	Super::HandleDeath();
 }
 
 bool ALDPlayerCharacter::ServerRPC_Attack_Validate()

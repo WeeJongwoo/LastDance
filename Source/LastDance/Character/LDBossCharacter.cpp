@@ -37,7 +37,7 @@ void ALDBossCharacter::BeginPlay()
 		return;
 	}
 
-	if (UWorld* World = GetWorld())
+	/*if (UWorld* World = GetWorld())
 	{
 		if (AGameStateBase* GameState = World->GetGameState<AGameStateBase>())
 		{
@@ -54,11 +54,11 @@ void ALDBossCharacter::BeginPlay()
 				}
 			}
 		}
-	}
+	}*/
 
 	if (ALDGameMode* GameMode = GetWorld()->GetAuthGameMode<ALDGameMode>())
 	{
-		GameMode->OnPlayerPossessed.AddDynamic(this, &ALDBossCharacter::OnPlayerPossessedHandler);
+		//GameMode->OnPlayerPossessed.AddDynamic(this, &ALDBossCharacter::OnPlayerPossessedHandler);
 		GameMode->OnPlayerLeft.AddDynamic(this, &ALDBossCharacter::OnPlayerLeftHandler);
 	}
 }
@@ -69,7 +69,7 @@ void ALDBossCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		if (ALDGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ALDGameMode>() : nullptr)
 		{
-			GameMode->OnPlayerPossessed.RemoveDynamic(this, &ALDBossCharacter::OnPlayerPossessedHandler);
+			//GameMode->OnPlayerPossessed.RemoveDynamic(this, &ALDBossCharacter::OnPlayerPossessedHandler);
 			GameMode->OnPlayerLeft.RemoveDynamic(this, &ALDBossCharacter::OnPlayerLeftHandler);
 		}
 	}
@@ -113,6 +113,14 @@ void ALDBossCharacter::RegisterController(ALDPlayerController* PC)
 
 	KnownControllers.Add(PC);
 
+	APawn* Pawn = PC->GetPawn();
+	ALDBaseCharacter* BaseChar = Cast<ALDBaseCharacter>(Pawn);
+	if (BaseChar)
+	{
+		BaseChar->OnDeath.RemoveAll(this);
+		BaseChar->OnDeath.AddUObject(this, &ALDBossCharacter::RegistedCharacterDead);
+	}
+
 	LD_LOG(LDLog, Log, TEXT("Boss registered PC: %s (total=%d)"), *GetNameSafe(PC), KnownControllers.Num());
 
 	PC->ClientRPC_NotifyRecognizedByBoss(this);
@@ -143,13 +151,17 @@ TArray<ALDPlayerCharacter*> ALDBossCharacter::GetAliveTargetPawns() const
 
 	for (const TWeakObjectPtr<ALDPlayerController>& Weak : KnownControllers)
 	{
-		ALDPlayerController* PC = Weak.Get();
-		if (!PC) continue;
-		if (ALDPlayerCharacter* P = PC->GetPawn<ALDPlayerCharacter>())
+		ALDPlayerController* PlayerController = Weak.Get();
+		if (!PlayerController)
 		{
-			if (!P->IsDead())
+			continue;
+		}
+
+		if (ALDPlayerCharacter* Player = PlayerController->GetPawn<ALDPlayerCharacter>())
+		{
+			if (!Player->IsDead())
 			{
-				Out.Add(P);
+				Out.Add(Player);
 			}
 		}
 	}
@@ -195,10 +207,10 @@ void ALDBossCharacter::PlayAttackMontage()
 	}
 }
 
-void ALDBossCharacter::OnPlayerPossessedHandler(ALDPlayerController* PC)
-{
-	RegisterController(PC);
-}
+//void ALDBossCharacter::OnPlayerPossessedHandler(ALDPlayerController* PC)
+//{
+//	RegisterController(PC);
+//}
 
 void ALDBossCharacter::OnPlayerLeftHandler(ALDPlayerController* PC)
 {
@@ -294,4 +306,15 @@ void ALDBossCharacter::AttackMontageEndedHandler(UAnimMontage* Montage, bool bIn
 	if (Montage != AttackMontage) return;
 
 	OnAttackMontageEnded.Broadcast();
+}
+
+void ALDBossCharacter::RegistedCharacterDead(ALDBaseCharacter* DeadCharacter)
+{
+	if (!HasAuthority() || !DeadCharacter) return;
+
+	AController* CharacterController = DeadCharacter->GetController();
+	if (ALDPlayerController* PlayerController = Cast<ALDPlayerController>(CharacterController))
+	{
+		UnregisterController(PlayerController);
+	}
 }
