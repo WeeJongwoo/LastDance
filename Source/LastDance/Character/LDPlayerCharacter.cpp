@@ -138,8 +138,8 @@ void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 
 			AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
 		}
-
-		ServerRPC_Attack();
+		float StartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		ServerRPC_Attack(StartTime);
 	}
 }
 
@@ -193,6 +193,18 @@ void ALDPlayerCharacter::PlayAttackMontage(float TimeDiff)
 	}
 }
 
+void ALDPlayerCharacter::ClientRPC_StopAttackMontage_Implementation()
+{
+	if (IsLocallyControlled())
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && IsValid(AttackMontage))
+		{
+			AnimInstance->Montage_Stop(0.0f, AttackMontage);
+		}
+	}
+}
+
 void ALDPlayerCharacter::OnRep_CanAttack()
 {
 	if (!bCanAttack)
@@ -224,13 +236,19 @@ void ALDPlayerCharacter::HandleDeath()
 	Super::HandleDeath();
 }
 
-bool ALDPlayerCharacter::ServerRPC_Attack_Validate()
+bool ALDPlayerCharacter::ServerRPC_Attack_Validate(float ClientStartTime)
 {
-	return bCanAttack;
+	if (!bCanAttack)
+	{
+		ClientRPC_StopAttackMontage();
+		return false;
+	}
+
+	return true;
 }
 
 
-void ALDPlayerCharacter::ServerRPC_Attack_Implementation()
+void ALDPlayerCharacter::ServerRPC_Attack_Implementation(float ClientStartTime)
 {
 	if (!bCanAttack)
 	{
@@ -240,9 +258,10 @@ void ALDPlayerCharacter::ServerRPC_Attack_Implementation()
 	bCanAttack = false;
 	OnRep_CanAttack();
 
-	float ServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	//float ServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 
-	MulticastRPC_PlayAttackMontage(ServerTime);
+
+	MulticastRPC_PlayAttackMontage(ClientStartTime);
 }
 
 

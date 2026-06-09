@@ -43,13 +43,16 @@ protected:
 	void OnAttackHit(const FHitResult& HitResult) override;
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerRPC_Attack();
+	void ServerRPC_Attack(float ClientStartTime);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_AttackEnd();
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastRPC_PlayAttackMontage(float ServerStartTime);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientRPC_StopAttackMontage();
 
 	UFUNCTION()
 	void OnRep_CanAttack();

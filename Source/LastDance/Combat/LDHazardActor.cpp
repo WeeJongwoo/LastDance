@@ -135,7 +135,7 @@ bool ALDHazardActor::ShouldDamageActor(AActor* Target) const
 
 	if (const ALDBaseCharacter* BC = Cast<ALDBaseCharacter>(Target))
 	{
-		if (BC->IsDead()) return false;  // 함수명은 실제 베이스 보고 맞추기
+		if (BC->IsDead()) return false;
 	}
 	return true;
 }
