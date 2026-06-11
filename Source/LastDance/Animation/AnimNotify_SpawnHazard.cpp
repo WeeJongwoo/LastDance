@@ -3,6 +3,7 @@
 
 #include "AnimNotify_SpawnHazard.h"
 #include "Combat/LDHazardActor.h"
+#include "Combat/LDHazardPool.h"
 #include "Data/LDHazardDataAsset.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Pawn.h"
@@ -70,13 +71,17 @@ void UAnimNotify_SpawnHazard::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
         return;
     }
 
-    ALDHazardActor* Spawned = World->SpawnActorDeferred<ALDHazardActor>(
-        HazardClass, SpawnTransform, Owner, InstigatorPawn,
-        ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-
-    if (Spawned)
+    // Object Pool: 직접 Spawn/Destroy 대신 풀에서 빌려쓴다.
+    ULDHazardPool* Pool = World->GetSubsystem<ULDHazardPool>();
+    if (!Pool)
     {
-        Spawned->InitializeFromRow(*Row);
-        Spawned->FinishSpawning(SpawnTransform);
+        UE_LOG(LogTemp, Warning, TEXT("AnimNotify_SpawnHazard: ULDHazardPool subsystem not found"));
+        return;
+    }
+
+    ALDHazardActor* Hazard = Pool->AcquireHazard(HazardClass, SpawnTransform, Owner, InstigatorPawn);
+    if (Hazard)
+    {
+        Hazard->ActivateFromRow(*Row);
     }
 }
