@@ -6,7 +6,8 @@
 #include "Log/LDLog.h"
 #include "AI/LDAIController.h"
 
-ALDEnemyCharacter::ALDEnemyCharacter()
+ALDEnemyCharacter::ALDEnemyCharacter(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
 	SetReplicates(true);
 

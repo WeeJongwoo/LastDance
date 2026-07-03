@@ -11,7 +11,8 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
 
-ALDBossCharacter::ALDBossCharacter()
+ALDBossCharacter::ALDBossCharacter(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }

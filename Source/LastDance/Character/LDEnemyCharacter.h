@@ -13,7 +13,7 @@ class LASTDANCE_API ALDEnemyCharacter : public ALDBaseCharacter
 	GENERATED_BODY()
 
 public:
-	ALDEnemyCharacter();
+	ALDEnemyCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
 	virtual void BeginPlay() override;

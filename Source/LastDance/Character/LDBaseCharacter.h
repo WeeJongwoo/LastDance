@@ -18,7 +18,7 @@ class LASTDANCE_API ALDBaseCharacter : public ACharacter, public ILDCombatInterf
 
 public:
 	// Sets default values for this character's properties
-	ALDBaseCharacter();
+	ALDBaseCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 

@@ -23,7 +23,7 @@ class LASTDANCE_API ALDPlayerCharacter : public ALDBaseCharacter
 	GENERATED_BODY()
 	
 public:
-	ALDPlayerCharacter();
+	ALDPlayerCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -39,6 +39,7 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Attack(const FInputActionValue& Value);
+	void Roll(const FInputActionValue& Value);
 
 	void OnAttackHit(const FHitResult& HitResult) override;
 
@@ -85,9 +86,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> AttackAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> RollAction;
+
 	//================== Animation ==================//
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UAnimMontage> RollMontage;
 
 protected:
 

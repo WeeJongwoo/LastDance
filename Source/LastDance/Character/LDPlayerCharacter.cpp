@@ -15,8 +15,10 @@
 #include "Component/LDStatComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "Components/CapsuleComponent.h"
+#include "LDCharacterMovementComponent.h"
 
-ALDPlayerCharacter::ALDPlayerCharacter()
+ALDPlayerCharacter::ALDPlayerCharacter(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer.SetDefaultSubobjectClass<ULDCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -67,6 +69,7 @@ void ALDPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Look);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Attack);
+		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Roll);
 	}
 }
 
@@ -140,6 +143,15 @@ void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 		}
 		float StartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 		ServerRPC_Attack(StartTime);
+	}
+}
+
+void ALDPlayerCharacter::Roll(const FInputActionValue& Value)
+{
+	ULDCharacterMovementComponent* LDMovement = Cast<ULDCharacterMovementComponent>(GetCharacterMovement());
+	if (LDMovement)
+	{
+		LDMovement->SetRollingCommand();
 	}
 }
 
