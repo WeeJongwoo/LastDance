@@ -250,6 +250,13 @@ void ALDPlayerCharacter::HandleDeath()
 
 bool ALDPlayerCharacter::ServerRPC_Attack_Validate(float ClientStartTime)
 {
+	ULDCharacterMovementComponent* MoveComp = Cast<ULDCharacterMovementComponent>(GetCharacterMovement());
+	if (MoveComp && MoveComp->IsRolling())
+	{
+		ClientRPC_StopAttackMontage();
+		return false;
+	}
+
 	if (!bCanAttack)
 	{
 		ClientRPC_StopAttackMontage();
