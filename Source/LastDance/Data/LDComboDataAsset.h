@@ -4,10 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Types/LDCombatTypes.h"
 #include "LDComboDataAsset.generated.h"
 
-struct FLDComboNext;
-struct FLDComboAction;
 /**
  * 
  */

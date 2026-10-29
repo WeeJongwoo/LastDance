@@ -52,7 +52,7 @@ protected:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastRPC_PlayAttackMontage(float ServerStartTime);
 
-	UFUNCTION(Client, Unreliable)
+	UFUNCTION(Client, Reliable)
 	void ClientRPC_StopAttackMontage();
 
 	UFUNCTION()

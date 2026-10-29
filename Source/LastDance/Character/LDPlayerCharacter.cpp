@@ -116,10 +116,22 @@ void ALDPlayerCharacter::Look(const FInputActionValue& Value)
 
 void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	if (bCanAttack)
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	ULDCharacterMovementComponent* LDMovement = Cast<ULDCharacterMovementComponent>(MoveComp);
+	if (!LDMovement)
+	{
+		return;
+	}
+
+	if (bCanAttack && !LDMovement->IsRolling())
 	{
 		bCanAttack = false;
-		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+		LDMovement->SetMovementMode(EMovementMode::MOVE_None);
 
 		PlayAttackMontage(0.0f);
 
@@ -259,6 +271,7 @@ void ALDPlayerCharacter::ServerRPC_Attack_Implementation(float ClientStartTime)
 
 	if (!bCanAttack)
 	{
+		ClientRPC_StopAttackMontage();
 		return;
 	}
 
