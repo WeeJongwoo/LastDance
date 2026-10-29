@@ -48,10 +48,13 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<ALDBossCharacter> BossClass;
 
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USceneComponent> BossSpawnPoint;
+
 	UPROPERTY()
 	TObjectPtr<ALDBossCharacter> ActiveBoss;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY()
 	FTransform BossSpawnTransform;
 
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0"))

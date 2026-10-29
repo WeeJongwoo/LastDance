@@ -19,6 +19,9 @@ ALDBossTrigger::ALDBossTrigger()
 	TriggerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("TriggerBox"));
 	RootComponent = TriggerBox;
 	TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
+
+	BossSpawnPoint = CreateDefaultSubobject<USceneComponent>(TEXT("BossSpawnPoint"));
+	BossSpawnPoint->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
@@ -73,6 +76,8 @@ void ALDBossTrigger::SpawnBoss()
 
     FActorSpawnParameters Params;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    BossSpawnTransform = BossSpawnPoint->GetComponentTransform();
 
     ActiveBoss = GetWorld()->SpawnActor<ALDBossCharacter>(BossClass, BossSpawnTransform, Params);
 
