@@ -43,7 +43,7 @@ protected:
 
 	void OnAttackHit(const FHitResult& HitResult) override;
 
-	UFUNCTION(Server, Reliable, WithValidation)
+	UFUNCTION(Server, Reliable)
 	void ServerRPC_Attack(float ClientStartTime);
 
 	UFUNCTION(Server, Reliable)

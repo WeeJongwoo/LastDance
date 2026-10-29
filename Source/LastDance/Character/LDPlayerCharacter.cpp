@@ -248,27 +248,15 @@ void ALDPlayerCharacter::HandleDeath()
 	Super::HandleDeath();
 }
 
-bool ALDPlayerCharacter::ServerRPC_Attack_Validate(float ClientStartTime)
+void ALDPlayerCharacter::ServerRPC_Attack_Implementation(float ClientStartTime)
 {
 	ULDCharacterMovementComponent* MoveComp = Cast<ULDCharacterMovementComponent>(GetCharacterMovement());
 	if (MoveComp && MoveComp->IsRolling())
 	{
 		ClientRPC_StopAttackMontage();
-		return false;
+		return;
 	}
 
-	if (!bCanAttack)
-	{
-		ClientRPC_StopAttackMontage();
-		return false;
-	}
-
-	return true;
-}
-
-
-void ALDPlayerCharacter::ServerRPC_Attack_Implementation(float ClientStartTime)
-{
 	if (!bCanAttack)
 	{
 		return;
