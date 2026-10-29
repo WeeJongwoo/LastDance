@@ -55,3 +55,45 @@ struct FAttackTraceParams
 	bool bShowDebugTrace = false;
 };
 
+class UAnimMontage;
+
+UENUM(BlueprintType)
+enum class ELDAttackCommand : uint8
+{
+	None            UMETA(Hidden),
+	LMB				UMETA(DisplayName = "좌클릭"),
+	RMB				UMETA(DisplayName = "우클릭"),
+
+	MAX             UMETA(Hidden)
+};
+
+USTRUCT(BlueprintType)
+struct FLDComboNext
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
+	ELDAttackCommand Command = ELDAttackCommand::LMB;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (GetOptions = "GetActionNameOptions"))
+	FName ToAction;
+};
+
+USTRUCT(BlueprintType)
+struct FLDComboAction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
+	FName ActionName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
+	TObjectPtr<UAnimMontage> Montage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
+	float DamageMultiplier = 1.0f;
+
+	// 이 액션 도중(연계 창 안에서) 입력 시 이동할 수 있는 액션들
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (TitleProperty = "{Command} → {ToAction}"))
+	TArray<FLDComboNext> NextActions;
+};
