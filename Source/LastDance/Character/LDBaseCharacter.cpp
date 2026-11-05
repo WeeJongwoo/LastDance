@@ -87,6 +87,11 @@ ULDCombatComponent* ALDBaseCharacter::GetCombatComponent() const
 	return CombatComponent;
 }
 
+float ALDBaseCharacter::GetAttackDamage() const
+{
+	return IsValid(StatComponent) ? StatComponent->GetATK() : 0.0f;
+}
+
 void ALDBaseCharacter::OnAttackHit(const FHitResult& HitResult)
 {
 	AActor* HitActor = HitResult.GetActor();
@@ -103,7 +108,7 @@ void ALDBaseCharacter::OnAttackHit(const FHitResult& HitResult)
 		}
 	}
 
-	UGameplayStatics::ApplyDamage(HitActor, StatComponent->GetATK(), GetController(), this, UDamageType::StaticClass());
+	UGameplayStatics::ApplyDamage(HitActor, GetAttackDamage(), GetController(), this, UDamageType::StaticClass());
 }
 
 float ALDBaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -159,6 +164,4 @@ void ALDBaseCharacter::MulticastRPC_HandleDeath_Implementation()
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->WakeAllRigidBodies();
 }
-
-
 

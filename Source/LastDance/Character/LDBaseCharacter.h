@@ -54,6 +54,8 @@ protected:
 
 	virtual void OnAttackHit(const FHitResult& HitResult);
 
+	virtual float GetAttackDamage() const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<ULDCombatComponent> CombatComponent;

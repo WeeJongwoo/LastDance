@@ -185,3 +185,9 @@ void ALDPlayerCharacter::HandleDeath()
 
 	Super::HandleDeath();
 }
+
+float ALDPlayerCharacter::GetAttackDamage() const
+{
+	const float Multiplier = AttackComboComponent ? AttackComboComponent->GetCurrentDamageMultiplier() : 1.0f;
+	return Super::GetAttackDamage() * Multiplier;
+}

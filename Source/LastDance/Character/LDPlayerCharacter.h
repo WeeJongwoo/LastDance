@@ -54,6 +54,7 @@ protected:
 	void Roll(const FInputActionValue& Value);
 
 	void OnAttackHit(const FHitResult& HitResult) override;
+	virtual float GetAttackDamage() const override;
 
 	virtual void SetupCharacterStats() override;
 

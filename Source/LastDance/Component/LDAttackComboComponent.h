@@ -10,6 +10,7 @@
 class ULDComboDataAsset;
 class UAnimInstance;
 class ACharacter;
+class UAnimSequenceBase;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class LASTDANCE_API ULDAttackComboComponent : public UActorComponent
@@ -22,12 +23,11 @@ public:
 	// 캐릭터 입력에서 호출
 	void HandleCommand(ELDAttackCommand Command);
 
-	// ComboWindow 노티파이에서 호출 (5단계)
-	void OnComboWindowBegin();
-	void OnComboWindowEnd();
-
 	bool IsAttacking() const { return bIsAttacking; }
 	float GetCurrentDamageMultiplier() const;
+
+	void OnComboWindowBegin(const UAnimSequenceBase* Animation);
+	void OnComboWindowEnd(const UAnimSequenceBase* Animation);
 
 protected:
 	virtual void BeginPlay() override;
@@ -55,6 +55,7 @@ private:
 	bool IsLocallyControlled() const;
 	bool IsRolling() const;
 	float GetServerTime() const;
+	bool IsCurrentActionMontage(const UAnimSequenceBase* Animation) const;
 
 	//================== RPC ==================//
 	UFUNCTION(Server, Reliable)

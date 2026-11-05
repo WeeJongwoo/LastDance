@@ -78,14 +78,9 @@ void ULDAttackComboComponent::BuildComboCache()
 		};
 
 	AddTransitions(NAME_None, ComboData->StartActions);
-	for (int32 i = 0; i < Actions.Num(); ++i)
+	for (const TPair<FName, int32>& Pair : ActionIndexMap)
 	{
-		// 위에서 제외된 액션의 전이는 등록하지 않음
-		const int32* Index = ActionIndexMap.Find(Actions[i].ActionName);
-		if (Index && *Index == i)
-		{
-			AddTransitions(Actions[i].ActionName, Actions[i].NextActions);
-		}
+		AddTransitions(Pair.Key, Actions[Pair.Value].NextActions);
 	}
 }
 
@@ -141,28 +136,6 @@ void ULDAttackComboComponent::HandleCommand(ELDAttackCommand Command)
 	{
 		TryConsumeBuffer();
 	}
-}
-
-void ULDAttackComboComponent::OnComboWindowBegin()
-{
-	if (!IsLocallyControlled() || CurrentActionIndex == INDEX_NONE)
-	{
-		return;
-	}
-
-	bComboWindowOpen = true;
-	TryConsumeBuffer();
-}
-
-void ULDAttackComboComponent::OnComboWindowEnd()
-{
-	if (!IsLocallyControlled())
-	{
-		return;
-	}
-
-	bComboWindowOpen = false;
-	BufferedCommand = ELDAttackCommand::None;
 }
 
 void ULDAttackComboComponent::TryConsumeBuffer()
@@ -298,6 +271,29 @@ void ULDAttackComboComponent::ApplyMovementMode()
 	}
 }
 
+void ULDAttackComboComponent::OnComboWindowBegin(const UAnimSequenceBase* Animation)
+{
+	if (!IsLocallyControlled() || !IsCurrentActionMontage(Animation))
+	{
+		return;
+	}
+
+	bComboWindowOpen = true;
+	TryConsumeBuffer();
+}
+
+void ULDAttackComboComponent::OnComboWindowEnd(const UAnimSequenceBase* Animation)
+{
+	// 이전 액션의 창이 뒤늦게 닫히는 경우 현재 액션의 상태를 건드리지 않음
+	if (!IsLocallyControlled() || !IsCurrentActionMontage(Animation))
+	{
+		return;
+	}
+
+	bComboWindowOpen = false;
+	BufferedCommand = ELDAttackCommand::None;
+}
+
 void ULDAttackComboComponent::OnRep_IsAttacking()
 {
 	ApplyMovementMode();
@@ -342,6 +338,11 @@ float ULDAttackComboComponent::GetServerTime() const
 {
 	const AGameStateBase* GameState = GetWorld()->GetGameState();
 	return GameState ? GameState->GetServerWorldTimeSeconds() : GetWorld()->GetTimeSeconds();
+}
+
+bool ULDAttackComboComponent::IsCurrentActionMontage(const UAnimSequenceBase* Animation) const
+{
+	return ComboData && ComboData->Actions.IsValidIndex(CurrentActionIndex) && ComboData->Actions[CurrentActionIndex].Montage.Get() == Animation;
 }
 
 //================== RPC ==================//
