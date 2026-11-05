@@ -41,6 +41,9 @@ public:
 
 	bool IsDead() const { return IsValid(StatComponent) ? StatComponent->IsDead() : true; }
 
+	// 사망 처리(MulticastRPC_HandleDeath)가 이 머신에서 실행됐는지
+	bool IsDeathHandled() const { return bDeathHandled; }
+
 	FOnCharacterDeath OnDeath;
 
 protected:
@@ -60,4 +63,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Stats")
 	TObjectPtr<ULDCharacterStatDataAsset> DefaultStatData;
+
+	// 복제하지 않음. 각 머신에서 MulticastRPC_HandleDeath가 실행될 때 true
+	bool bDeathHandled = false;
 };

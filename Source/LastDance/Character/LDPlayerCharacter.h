@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Character/LDBaseCharacter.h"
 #include "InputActionValue.h"
+#include "Types/LDCombatTypes.h"
 #include "LDPlayerCharacter.generated.h"
 
 
@@ -13,9 +14,23 @@ class USpringArmComponent;
 class UInputMappingContext;
 class UInputAction;
 class UAnimMontage;
+class ULDAttackComboComponent;
+
+// 입력 액션 하나를 공격 커맨드 하나에 연결
+USTRUCT(BlueprintType)
+struct FLDAttackInputBinding
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	ELDAttackCommand Command = ELDAttackCommand::LMB;
+};
 
 /**
- * 
+ *
  */
 UCLASS()
 class LASTDANCE_API ALDPlayerCharacter : public ALDBaseCharacter
@@ -29,34 +44,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	void PlayAttackMontage(float TimeDiff);
 protected:
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void PossessedBy(AController* NewController) override;
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
-	void Attack(const FInputActionValue& Value);
+	void OnAttackCommand(ELDAttackCommand Command);
 	void Roll(const FInputActionValue& Value);
 
 	void OnAttackHit(const FHitResult& HitResult) override;
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Attack(float ClientStartTime);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_AttackEnd();
-
-	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastRPC_PlayAttackMontage(float ServerStartTime);
-
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_StopAttackMontage();
-
-	UFUNCTION()
-	void OnRep_CanAttack();
 
 	virtual void SetupCharacterStats() override;
 
@@ -69,6 +66,9 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<USpringArmComponent> CameraBoom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<ULDAttackComboComponent> AttackComboComponent;
 
 	//================== Input ==================//
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
@@ -84,22 +84,13 @@ protected:
 	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> AttackAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> RollAction;
+
+	// 입력 액션 → 공격 커맨드. 커맨드를 추가할 때 이 배열에 항목만 추가
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (TitleProperty = "Command"))
+	TArray<FLDAttackInputBinding> AttackInputBindings;
 
 	//================== Animation ==================//
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimMontage> AttackMontage;
-
-	UPROPERTY(EditAnywhere)
 	TObjectPtr<UAnimMontage> RollMontage;
-
-protected:
-
-	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
-	uint8 bCanAttack : 1;
-
-
 };

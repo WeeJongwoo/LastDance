@@ -148,6 +148,8 @@ void ALDBaseCharacter::HandleDeath()
 
 void ALDBaseCharacter::MulticastRPC_HandleDeath_Implementation()
 {
+	bDeathHandled = true;
+
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->DisableMovement();
 

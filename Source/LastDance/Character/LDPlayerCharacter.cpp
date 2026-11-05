@@ -6,16 +6,14 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Animation/AnimMontage.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EngineUtils.h"
 #include "Log/LDLog.h"
 #include "Player/LDPlayerState.h"
 #include "Component/LDStatComponent.h"
-#include "GameFramework/GameStateBase.h"
 #include "Components/CapsuleComponent.h"
 #include "LDCharacterMovementComponent.h"
+#include "Component/LDAttackComboComponent.h"
 
 ALDPlayerCharacter::ALDPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<ULDCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -27,7 +25,8 @@ ALDPlayerCharacter::ALDPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
-	bCanAttack = true;
+
+	AttackComboComponent = CreateDefaultSubobject<ULDAttackComboComponent>(TEXT("AttackComboComponent"));
 
 	SetReplicates(true);
 }
@@ -68,16 +67,17 @@ void ALDPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Look);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ALDPlayerCharacter::Roll);
+
+		for (const FLDAttackInputBinding& Binding : AttackInputBindings)
+		{
+			if (Binding.Action)
+			{
+				// 마지막 인자(Binding.Command)는 호출될 때 OnAttackCommand의 인자로 전달됨
+				EnhancedInputComponent->BindAction(Binding.Action, ETriggerEvent::Started, this, &ALDPlayerCharacter::OnAttackCommand, Binding.Command);
+			}
+		}
 	}
-}
-
-void ALDPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ALDPlayerCharacter, bCanAttack);
 }
 
 void ALDPlayerCharacter::PossessedBy(AController* NewController)
@@ -114,47 +114,11 @@ void ALDPlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void ALDPlayerCharacter::Attack(const FInputActionValue& Value)
+void ALDPlayerCharacter::OnAttackCommand(ELDAttackCommand Command)
 {
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-	if (!MoveComp)
+	if (AttackComboComponent)
 	{
-		return;
-	}
-
-	ULDCharacterMovementComponent* LDMovement = Cast<ULDCharacterMovementComponent>(MoveComp);
-	if (!LDMovement)
-	{
-		return;
-	}
-
-	if (bCanAttack && !LDMovement->IsRolling())
-	{
-		bCanAttack = false;
-		LDMovement->SetMovementMode(EMovementMode::MOVE_None);
-
-		PlayAttackMontage(0.0f);
-
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance)
-		{
-			FOnMontageEnded MontageEndedDelegate;
-			MontageEndedDelegate.BindWeakLambda(this, [this](UAnimMontage* Montage, bool bInterrupted)
-				{
-					LD_LOG(LDLog, Log, TEXT("Attack montage ended"));
-
-					if (Montage == AttackMontage)
-					{
-						bCanAttack = true;
-						GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-						ServerRPC_AttackEnd();
-					}
-				});
-
-			AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
-		}
-		float StartTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-		ServerRPC_Attack(StartTime);
+		AttackComboComponent->HandleCommand(Command);
 	}
 }
 
@@ -203,44 +167,6 @@ void ALDPlayerCharacter::OnAttackHit(const FHitResult& HitResult)
 	LD_LOG(LDLog, Log, TEXT("Weapon Hit: %s (ATK: %.1f)"), *HitActor->GetName(), StatComponent->GetATK());
 }
 
-void ALDPlayerCharacter::PlayAttackMontage(float TimeDiff)
-{
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && IsValid(AttackMontage))
-	{
-		if (AttackMontage->GetPlayLength() > TimeDiff)
-		{
-			AnimInstance->StopAllMontages(0.0f);
-			AnimInstance->Montage_Play(AttackMontage, 1.0f, EMontagePlayReturnType::MontageLength, TimeDiff);
-		}
-
-	}
-}
-
-void ALDPlayerCharacter::ClientRPC_StopAttackMontage_Implementation()
-{
-	if (IsLocallyControlled())
-	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && IsValid(AttackMontage))
-		{
-			AnimInstance->Montage_Stop(0.0f, AttackMontage);
-		}
-	}
-}
-
-void ALDPlayerCharacter::OnRep_CanAttack()
-{
-	if (!bCanAttack)
-	{
-		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-	}
-	else
-	{
-		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-	}
-}
-
 void ALDPlayerCharacter::SetupCharacterStats()
 {
 
@@ -258,46 +184,4 @@ void ALDPlayerCharacter::HandleDeath()
 	GetMesh()->SetVisibility(false);
 
 	Super::HandleDeath();
-}
-
-void ALDPlayerCharacter::ServerRPC_Attack_Implementation(float ClientStartTime)
-{
-	ULDCharacterMovementComponent* MoveComp = Cast<ULDCharacterMovementComponent>(GetCharacterMovement());
-	if (MoveComp && MoveComp->IsRolling())
-	{
-		ClientRPC_StopAttackMontage();
-		return;
-	}
-
-	if (!bCanAttack)
-	{
-		ClientRPC_StopAttackMontage();
-		return;
-	}
-
-	bCanAttack = false;
-	OnRep_CanAttack();
-
-	//float ServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-
-
-	MulticastRPC_PlayAttackMontage(ClientStartTime);
-}
-
-
-void ALDPlayerCharacter::ServerRPC_AttackEnd_Implementation()
-{
-	bCanAttack = true;
-	OnRep_CanAttack();
-}
-
-void ALDPlayerCharacter::MulticastRPC_PlayAttackMontage_Implementation(float ServerStartTime)
-{
-	if (!IsLocallyControlled())
-	{
-		float LocalTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-		float TimeDiff = LocalTime - ServerStartTime;
-
-		PlayAttackMontage(TimeDiff);
-	}
 }
