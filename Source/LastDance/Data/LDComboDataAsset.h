@@ -7,6 +7,8 @@
 #include "Types/LDCombatTypes.h"
 #include "LDComboDataAsset.generated.h"
 
+class UEdGraph;
+
 /**
  * 
  */
@@ -39,6 +41,10 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (TitleProperty = "ActionName"))
     TArray<FLDComboAction> Actions;
-	
-	
+
+#if WITH_EDITORONLY_DATA
+    // 에디터 전용 편집 원본. 쿠킹된 빌드에는 포함되지 않음
+    UPROPERTY()
+    TObjectPtr<UEdGraph> ComboGraph;
+#endif
 };
