@@ -14,6 +14,7 @@ public class LastDanceEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"LastDance",
+			"ApplicationCore",
 			"AssetDefinition",
 			"GraphEditor",
 			"PropertyEditor",

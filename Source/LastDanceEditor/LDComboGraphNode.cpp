@@ -1,6 +1,8 @@
 ﻿#include "LDComboGraphNode.h"
 #include "Animation/AnimMontage.h"
 #include "EdGraph/EdGraphPin.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "LDComboGraphSchema.h"
 #include "Types/LDCombatTypes.h"
 
 #define LOCTEXT_NAMESPACE "LDComboGraphNode"
@@ -8,6 +10,12 @@
 namespace
 {
 	const FName ComboPinCategory(TEXT("LDCombo"));
+	const FName ComboInputPinName(TEXT("In"));
+}
+
+bool ULDComboGraphNode::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const
+{
+	return Schema && Schema->IsA<ULDComboGraphSchema>();
 }
 
 void ULDComboGraphNode::CreateCommandPins()
@@ -36,13 +44,22 @@ FText ULDComboEntryNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 void ULDComboActionNode::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, ComboPinCategory, FName(TEXT("In")));
+	CreatePin(EGPD_Input, ComboPinCategory, ComboInputPinName);
 	CreateCommandPins();
 }
 
 FText ULDComboActionNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return ActionName.IsNone() ? LOCTEXT("NewActionTitle", "New Action") : FText::FromName(ActionName);
+}
+
+void ULDComboActionNode::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	// 출력 핀에서 끌어온 경우에만 새 노드의 입력에 연결
+	if (FromPin && FromPin->Direction == EGPD_Output)
+	{
+		GetSchema()->TryCreateConnection(FromPin, FindPinChecked(ComboInputPinName));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

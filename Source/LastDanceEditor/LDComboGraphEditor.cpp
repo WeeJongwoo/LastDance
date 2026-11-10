@@ -1,12 +1,17 @@
 ﻿#include "LDComboGraphEditor.h"
 #include "Data/LDComboDataAsset.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraphUtilities.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Framework/Commands/UICommandList.h"
 #include "GraphEditor.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "IDetailsView.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "LDComboGraphSchema.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
+#include "ScopedTransaction.h"
 #include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "LDComboGraphEditor"
@@ -32,7 +37,10 @@ void FLDComboGraphEditor::InitEditor(const EToolkitMode::Type Mode, const TShare
 	SGraphEditor::FGraphEditorEvents GraphEvents;
 	GraphEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FLDComboGraphEditor::OnGraphSelectionChanged);
 
+	BindGraphCommands();
+
 	GraphEditor = SNew(SGraphEditor)
+		.AdditionalCommands(GraphCommands)
 		.GraphToEdit(ComboData->ComboGraph)
 		.GraphEvents(GraphEvents);
 
@@ -134,6 +142,172 @@ void FLDComboGraphEditor::OnGraphSelectionChanged(const TSet<UObject*>& Selectio
 	{
 		DetailsView->SetObject(ComboData);
 	}
+}
+
+void FLDComboGraphEditor::BindGraphCommands()
+{
+	GraphCommands = MakeShared<FUICommandList>();
+
+	GraphCommands->MapAction(FGenericCommands::Get().Delete,
+		FExecuteAction::CreateSP(this, &FLDComboGraphEditor::DeleteSelectedNodes),
+		FCanExecuteAction::CreateSP(this, &FLDComboGraphEditor::CanDeleteNodes));
+
+	GraphCommands->MapAction(FGenericCommands::Get().Copy,
+		FExecuteAction::CreateSP(this, &FLDComboGraphEditor::CopySelectedNodes),
+		FCanExecuteAction::CreateSP(this, &FLDComboGraphEditor::CanCopyNodes));
+
+	GraphCommands->MapAction(FGenericCommands::Get().Cut,
+		FExecuteAction::CreateSP(this, &FLDComboGraphEditor::CutSelectedNodes),
+		FCanExecuteAction::CreateSP(this, &FLDComboGraphEditor::CanCopyNodes));
+
+	GraphCommands->MapAction(FGenericCommands::Get().Paste,
+		FExecuteAction::CreateSP(this, &FLDComboGraphEditor::PasteNodes),
+		FCanExecuteAction::CreateSP(this, &FLDComboGraphEditor::CanPasteNodes));
+
+	GraphCommands->MapAction(FGenericCommands::Get().Duplicate,
+		FExecuteAction::CreateSP(this, &FLDComboGraphEditor::DuplicateNodes),
+		FCanExecuteAction::CreateSP(this, &FLDComboGraphEditor::CanCopyNodes));
+}
+
+void FLDComboGraphEditor::DeleteSelectedNodes()
+{
+	const FScopedTransaction Transaction(FGenericCommands::Get().Delete->GetDescription());
+	ComboData->ComboGraph->Modify();
+
+	// ClearSelectionSet이 선택 목록을 비우므로 복사본으로 순회
+	const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+	GraphEditor->ClearSelectionSet();
+
+	for (UObject* Object : SelectedNodes)
+	{
+		UEdGraphNode* Node = Cast<UEdGraphNode>(Object);
+		if (Node && Node->CanUserDeleteNode())
+		{
+			Node->Modify();
+			Node->DestroyNode();
+		}
+	}
+}
+
+bool FLDComboGraphEditor::CanDeleteNodes() const
+{
+	for (UObject* Object : GraphEditor->GetSelectedNodes())
+	{
+		const UEdGraphNode* Node = Cast<UEdGraphNode>(Object);
+		if (Node && Node->CanUserDeleteNode())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FLDComboGraphEditor::CopySelectedNodes()
+{
+	FGraphPanelSelectionSet NodesToCopy;
+	for (UObject* Object : GraphEditor->GetSelectedNodes())
+	{
+		UEdGraphNode* Node = Cast<UEdGraphNode>(Object);
+		if (Node && Node->CanDuplicateNode())
+		{
+			Node->PrepareForCopying();
+			NodesToCopy.Add(Node);
+		}
+	}
+
+	FString ExportedText;
+	FEdGraphUtilities::ExportNodesToText(NodesToCopy, ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
+}
+
+bool FLDComboGraphEditor::CanCopyNodes() const
+{
+	for (UObject* Object : GraphEditor->GetSelectedNodes())
+	{
+		const UEdGraphNode* Node = Cast<UEdGraphNode>(Object);
+		if (Node && Node->CanDuplicateNode())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FLDComboGraphEditor::CutSelectedNodes()
+{
+	CopySelectedNodes();
+	DeleteSelectedNodes();
+}
+
+void FLDComboGraphEditor::PasteNodes()
+{
+	const FVector2D PasteLocation = GraphEditor->GetPasteLocation();
+	UEdGraph* Graph = ComboData->ComboGraph;
+
+	const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
+	Graph->Modify();
+	GraphEditor->ClearSelectionSet();
+
+	FString TextToImport;
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
+
+	TSet<UEdGraphNode*> PastedNodes;
+	FEdGraphUtilities::ImportNodesFromText(Graph, TextToImport, PastedNodes);
+
+	if (PastedNodes.IsEmpty())
+	{
+		return;
+	}
+
+	// 노드끼리의 상대 위치를 유지하기 위해 평균 위치를 기준으로 이동
+	FVector2D AveragePosition = FVector2D::ZeroVector;
+	for (const UEdGraphNode* Node : PastedNodes)
+	{
+		AveragePosition += FVector2D(Node->NodePosX, Node->NodePosY);
+	}
+	AveragePosition /= PastedNodes.Num();
+
+	for (UEdGraphNode* Node : PastedNodes)
+	{
+		Node->NodePosX = static_cast<int32>(Node->NodePosX - AveragePosition.X + PasteLocation.X);
+		Node->NodePosY = static_cast<int32>(Node->NodePosY - AveragePosition.Y + PasteLocation.Y);
+		Node->SnapToGrid(16);
+		Node->CreateNewGuid();
+		GraphEditor->SetNodeSelection(Node, true);
+	}
+
+	GraphEditor->NotifyGraphChanged();
+}
+
+bool FLDComboGraphEditor::CanPasteNodes() const
+{
+	FString ClipboardContent;
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
+
+	return FEdGraphUtilities::CanImportNodesFromText(ComboData->ComboGraph, ClipboardContent);
+}
+
+void FLDComboGraphEditor::DuplicateNodes()
+{
+	CopySelectedNodes();
+	PasteNodes();
+}
+
+void FLDComboGraphEditor::PostUndo(bool bSuccess)
+{
+	if (bSuccess)
+	{
+		// 되돌리면서 사라진 노드를 선택 목록에 남기지 않음
+		GraphEditor->ClearSelectionSet();
+		GraphEditor->NotifyGraphChanged();
+	}
+}
+
+void FLDComboGraphEditor::PostRedo(bool bSuccess)
+{
+	PostUndo(bSuccess);
 }
 
 #undef LOCTEXT_NAMESPACE

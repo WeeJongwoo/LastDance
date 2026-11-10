@@ -11,6 +11,10 @@ class ULDComboGraphNode : public UEdGraphNode
 {
 	GENERATED_BODY()
 
+public:
+	// 콤보 그래프에서만 생성, 붙여넣기 가능
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+
 protected:
 	// ELDAttackCommand의 커맨드마다 출력 핀 생성
 	void CreateCommandPins();
@@ -36,6 +40,7 @@ class ULDComboActionNode : public ULDComboGraphNode
 public:
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 
 	UPROPERTY(EditAnywhere, Category = "Combo")
 	FName ActionName;
