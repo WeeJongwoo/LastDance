@@ -61,8 +61,9 @@ UENUM(BlueprintType)
 enum class ELDAttackCommand : uint8
 {
 	None            UMETA(Hidden),
-	LMB				UMETA(DisplayName = "좌클릭"),
-	RMB				UMETA(DisplayName = "우클릭"),
+	LMB,
+	RMB,
+	LMB_RMB,
 
 	MAX             UMETA(Hidden)
 };

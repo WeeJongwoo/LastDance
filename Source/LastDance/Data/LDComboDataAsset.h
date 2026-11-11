@@ -35,11 +35,12 @@ private:
     void AppendTree(const FLDComboNext& Next, const FString& Prefix, bool bIsLast, TSet<FName>& Path, FString& Out) const;
 
 public:
+    // 그래프에서 자동 컴파일되는 런타임 데이터. 디테일 패널에는 표시하지 않음
     // 비전투 상태에서 입력 시 시작할 액션
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (TitleProperty = "{Command} → {ToAction}"))
+    UPROPERTY(BlueprintReadOnly, Category = "Combo")
     TArray<FLDComboNext> StartActions;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (TitleProperty = "ActionName"))
+    UPROPERTY(BlueprintReadOnly, Category = "Combo")
     TArray<FLDComboAction> Actions;
 
 #if WITH_EDITORONLY_DATA

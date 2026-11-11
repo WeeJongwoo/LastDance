@@ -8,10 +8,12 @@
 #include "HAL/PlatformApplicationMisc.h"
 #include "IDetailsView.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "LDComboGraphNode.h"
 #include "LDComboGraphSchema.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "ScopedTransaction.h"
+#include "UObject/UnrealType.h"
 #include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "LDComboGraphEditor"
@@ -33,6 +35,10 @@ void FLDComboGraphEditor::InitEditor(const EToolkitMode::Type Mode, const TShare
 		ComboData->ComboGraph = FBlueprintEditorUtils::CreateNewGraph(ComboData, TEXT("ComboGraph"), UEdGraph::StaticClass(), ULDComboGraphSchema::StaticClass());
 		ComboData->ComboGraph->GetSchema()->CreateDefaultNodesForGraph(*ComboData->ComboGraph);
 	}
+
+	// 그래프가 바뀔 때마다 Actions/StartActions로 다시 컴파일
+	ComboData->ComboGraph->AddOnGraphChangedHandler(FOnGraphChanged::FDelegate::CreateSP(this, &FLDComboGraphEditor::OnComboGraphChanged));
+	CompileGraph();
 
 	SGraphEditor::FGraphEditorEvents GraphEvents;
 	GraphEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FLDComboGraphEditor::OnGraphSelectionChanged);
@@ -142,6 +148,48 @@ void FLDComboGraphEditor::OnGraphSelectionChanged(const TSet<UObject*>& Selectio
 	{
 		DetailsView->SetObject(ComboData);
 	}
+}
+
+void FLDComboGraphEditor::OnComboGraphChanged(const FEdGraphEditAction& Action)
+{
+	CompileGraph();
+}
+
+void FLDComboGraphEditor::CompileGraph()
+{
+	TArray<FLDComboNext> NewStartActions;
+	TArray<FLDComboAction> NewActions;
+
+	// 노드 순서 = Actions 순서 (네트워크 ID)
+	for (const UEdGraphNode* Node : ComboData->ComboGraph->Nodes)
+	{
+		if (const ULDComboActionNode* ActionNode = Cast<ULDComboActionNode>(Node))
+		{
+			FLDComboAction& Action = NewActions.AddDefaulted_GetRef();
+			Action.ActionName = ActionNode->ActionName;
+			Action.Montage = ActionNode->Montage;
+			Action.DamageMultiplier = ActionNode->DamageMultiplier;
+			ActionNode->AppendNextActions(Action.NextActions);
+		}
+		else if (const ULDComboEntryNode* EntryNode = Cast<ULDComboEntryNode>(Node))
+		{
+			EntryNode->AppendNextActions(NewStartActions);
+		}
+	}
+
+	// 결과가 같으면 에셋을 수정 상태로 만들지 않음
+	const UClass* DataClass = ULDComboDataAsset::StaticClass();
+	const FProperty* StartProperty = FindFProperty<FProperty>(DataClass, GET_MEMBER_NAME_CHECKED(ULDComboDataAsset, StartActions));
+	const FProperty* ActionsProperty = FindFProperty<FProperty>(DataClass, GET_MEMBER_NAME_CHECKED(ULDComboDataAsset, Actions));
+	if (StartProperty->Identical(&ComboData->StartActions, &NewStartActions) &&
+		ActionsProperty->Identical(&ComboData->Actions, &NewActions))
+	{
+		return;
+	}
+
+	ComboData->Modify();
+	ComboData->StartActions = MoveTemp(NewStartActions);
+	ComboData->Actions = MoveTemp(NewActions);
 }
 
 void FLDComboGraphEditor::BindGraphCommands()

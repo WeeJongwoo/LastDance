@@ -8,6 +8,7 @@ class IDetailsView;
 class SDockTab;
 class SGraphEditor;
 class ULDComboDataAsset;
+struct FEdGraphEditAction;
 
 class FLDComboGraphEditor : public FAssetEditorToolkit, public FSelfRegisteringEditorUndoClient
 {
@@ -29,6 +30,10 @@ private:
 	TSharedRef<SDockTab> SpawnGraphTab(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnDetailsTab(const FSpawnTabArgs& Args);
 	void OnGraphSelectionChanged(const TSet<UObject*>& Selection);
+	void OnComboGraphChanged(const FEdGraphEditAction& Action);
+
+	// 그래프를 Actions/StartActions로 변환. 결과가 같으면 에셋을 수정하지 않음
+	void CompileGraph();
 
 	void BindGraphCommands();
 

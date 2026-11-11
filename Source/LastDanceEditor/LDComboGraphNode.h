@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "EdGraph/EdGraphNode.h"
+#include "Types/LDCombatTypes.h"
 #include "LDComboGraphNode.generated.h"
 
 class UAnimMontage;
@@ -14,6 +15,10 @@ class ULDComboGraphNode : public UEdGraphNode
 public:
 	// 콤보 그래프에서만 생성, 붙여넣기 가능
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
+
+	// 출력 핀의 연결을 FLDComboNext 목록으로 변환
+	void AppendNextActions(TArray<FLDComboNext>& OutNexts) const;
 
 protected:
 	// ELDAttackCommand의 커맨드마다 출력 핀 생성
@@ -41,6 +46,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	UPROPERTY(EditAnywhere, Category = "Combo")
 	FName ActionName;

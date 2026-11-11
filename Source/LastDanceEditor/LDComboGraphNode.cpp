@@ -18,6 +18,39 @@ bool ULDComboGraphNode::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Sche
 	return Schema && Schema->IsA<ULDComboGraphSchema>();
 }
 
+void ULDComboGraphNode::PinConnectionListChanged(UEdGraphPin* Pin)
+{
+	Super::PinConnectionListChanged(Pin);
+
+	// 연결 변경은 그래프 변경 이벤트가 없어서 직접 알림
+	GetGraph()->NotifyNodeChanged(this);
+}
+
+void ULDComboGraphNode::AppendNextActions(TArray<FLDComboNext>& OutNexts) const
+{
+	const UEnum* CommandEnum = StaticEnum<ELDAttackCommand>();
+
+	for (const UEdGraphPin* Pin : Pins)
+	{
+		if (Pin->Direction != EGPD_Output || Pin->LinkedTo.IsEmpty())
+		{
+			continue;
+		}
+
+		// 핀 이름(LMB, RMB)을 커맨드 값으로 되돌림
+		const int64 Value = CommandEnum->GetValueByName(Pin->PinName);
+		const ULDComboActionNode* ToNode = Cast<ULDComboActionNode>(Pin->LinkedTo[0]->GetOwningNode());
+		if (Value == INDEX_NONE || !ToNode)
+		{
+			continue;
+		}
+
+		FLDComboNext& Next = OutNexts.AddDefaulted_GetRef();
+		Next.Command = static_cast<ELDAttackCommand>(Value);
+		Next.ToAction = ToNode->ActionName;
+	}
+}
+
 void ULDComboGraphNode::CreateCommandPins()
 {
 	const UEnum* CommandEnum = StaticEnum<ELDAttackCommand>();
@@ -60,6 +93,14 @@ void ULDComboActionNode::AutowireNewNode(UEdGraphPin* FromPin)
 	{
 		GetSchema()->TryCreateConnection(FromPin, FindPinChecked(ComboInputPinName));
 	}
+}
+
+void ULDComboActionNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// 노드 제목 갱신 + 다시 컴파일
+	GetGraph()->NotifyNodeChanged(this);
 }
 
 #undef LOCTEXT_NAMESPACE

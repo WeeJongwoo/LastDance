@@ -67,6 +67,9 @@ void ULDComboGraphSchema::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets,
 		Node->NodePosY = NodePosY;
 		NodeCreator.Finalize();
 
+		// AddNode 시점에는 이름이 비어 있었으므로 값을 넣은 뒤 다시 알림
+		Graph->NotifyNodeChanged(Node);
+
 		// 여러 개를 놓으면 세로로 배치
 		NodePosY += 160;
 	}
