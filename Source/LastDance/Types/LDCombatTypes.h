@@ -64,6 +64,7 @@ enum class ELDAttackCommand : uint8
 	LMB,
 	RMB,
 	LMB_RMB,
+	Q,
 
 	MAX             UMETA(Hidden)
 };
@@ -76,7 +77,7 @@ struct FLDComboNext
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
 	ELDAttackCommand Command = ELDAttackCommand::LMB;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (GetOptions = "GetActionNameOptions"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
 	FName ToAction;
 };
 

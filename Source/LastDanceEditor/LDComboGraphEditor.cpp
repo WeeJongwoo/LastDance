@@ -10,6 +10,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "LDComboGraphNode.h"
 #include "LDComboGraphSchema.h"
+#include "Logging/TokenizedMessage.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "ScopedTransaction.h"
@@ -34,6 +35,11 @@ void FLDComboGraphEditor::InitEditor(const EToolkitMode::Type Mode, const TShare
 	{
 		ComboData->ComboGraph = FBlueprintEditorUtils::CreateNewGraph(ComboData, TEXT("ComboGraph"), UEdGraph::StaticClass(), ULDComboGraphSchema::StaticClass());
 		ComboData->ComboGraph->GetSchema()->CreateDefaultNodesForGraph(*ComboData->ComboGraph);
+	}
+
+	for (UEdGraphNode* Node : ComboData->ComboGraph->Nodes)
+	{
+		Node->ReconstructNode();
 	}
 
 	// 그래프가 바뀔 때마다 Actions/StartActions로 다시 컴파일
@@ -155,8 +161,101 @@ void FLDComboGraphEditor::OnComboGraphChanged(const FEdGraphEditAction& Action)
 	CompileGraph();
 }
 
+void FLDComboGraphEditor::UpdateNodeErrors()
+{
+	const TArray<TObjectPtr<UEdGraphNode>>& Nodes = ComboData->ComboGraph->Nodes;
+
+	// 1. Entry에서 연결을 따라가며 도달할 수 있는 노드 수집
+	TSet<const UEdGraphNode*> Reachable;
+	TArray<const UEdGraphNode*> Stack;
+	for (const UEdGraphNode* Node : Nodes)
+	{
+		if (Node->IsA<ULDComboEntryNode>())
+		{
+			Stack.Add(Node);
+		}
+	}
+
+	while (!Stack.IsEmpty())
+	{
+		const UEdGraphNode* Current = Stack.Pop();
+		if (Reachable.Contains(Current))
+		{
+			// 이미 방문 (L3 → L1 같은 순환 방지)
+			continue;
+		}
+		Reachable.Add(Current);
+
+		for (const UEdGraphPin* Pin : Current->Pins)
+		{
+			if (Pin->Direction == EGPD_Output && !Pin->LinkedTo.IsEmpty())
+			{
+				Stack.Add(Pin->LinkedTo[0]->GetOwningNode());
+			}
+		}
+	}
+
+	// 2. 이름별 노드 개수 (중복 검사용)
+	TMap<FName, int32> NameCounts;
+	for (const UEdGraphNode* Node : Nodes)
+	{
+		if (const ULDComboActionNode* ActionNode = Cast<ULDComboActionNode>(Node))
+		{
+			++NameCounts.FindOrAdd(ActionNode->ActionName);
+		}
+	}
+
+	// 3. 노드마다 메시지를 정하고, 바뀐 노드만 다시 그림
+	for (UEdGraphNode* Node : Nodes)
+	{
+		ULDComboActionNode* ActionNode = Cast<ULDComboActionNode>(Node);
+		if (!ActionNode)
+		{
+			continue;
+		}
+
+		FString Message;
+		int32 Severity = EMessageSeverity::Error;
+		if (ActionNode->ActionName.IsNone())
+		{
+			Message = TEXT("ActionName이 비어 있습니다.");
+		}
+		else if (NameCounts[ActionNode->ActionName] > 1)
+		{
+			Message = FString::Printf(TEXT("ActionName '%s'이 중복됩니다."), *ActionNode->ActionName.ToString());
+		}
+		else if (!ActionNode->Montage)
+		{
+			Message = TEXT("Montage가 비어 있습니다.");
+		}
+		else if (!Reachable.Contains(ActionNode))
+		{
+			Message = TEXT("Entry에서 도달할 수 없는 액션입니다.");
+			Severity = EMessageSeverity::Warning;
+		}
+
+		if (ActionNode->ErrorMsg == Message && ActionNode->ErrorType == Severity)
+		{
+			continue;
+		}
+
+		ActionNode->bHasCompilerMessage = !Message.IsEmpty();
+		ActionNode->ErrorMsg = Message;
+		ActionNode->ErrorType = Severity;
+
+		// 에디터를 여는 중(위젯 생성 전)에는 위젯이 만들어질 때 값을 읽어 감
+		if (GraphEditor.IsValid())
+		{
+			GraphEditor->RefreshNode(*ActionNode);
+		}
+	}
+}
+
 void FLDComboGraphEditor::CompileGraph()
 {
+	// 비교 결과와 상관없이 오류 표시는 항상 갱신
+	UpdateNodeErrors();
+
 	TArray<FLDComboNext> NewStartActions;
 	TArray<FLDComboAction> NewActions;
 

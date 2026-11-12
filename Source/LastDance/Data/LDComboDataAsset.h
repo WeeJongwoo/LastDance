@@ -28,9 +28,6 @@ public:
     UFUNCTION(CallInEditor, Category = "Combo|Debug")
     void PrintComboTree();
 
-    UFUNCTION()
-    TArray<FName> GetActionNameOptions() const;
-
 private:
     void AppendTree(const FLDComboNext& Next, const FString& Prefix, bool bIsLast, TSet<FName>& Path, FString& Out) const;
 

@@ -51,6 +51,45 @@ void ULDComboGraphNode::AppendNextActions(TArray<FLDComboNext>& OutNexts) const
 	}
 }
 
+void ULDComboGraphNode::ReconstructNode()
+{
+	TArray<UEdGraphPin*> OldPins = MoveTemp(Pins);
+	Pins.Reset();
+	AllocateDefaultPins();
+
+	bool bChanged = OldPins.Num() != Pins.Num();
+	for (int32 Index = 0; !bChanged && Index < Pins.Num(); ++Index)
+	{
+		bChanged = Pins[Index]->PinName != OldPins[Index]->PinName ||
+			!Pins[Index]->PinFriendlyName.EqualTo(OldPins[Index]->PinFriendlyName);
+	}
+
+	if (!bChanged)
+	{
+		for (UEdGraphPin* NewPin : Pins)
+		{
+			DestroyPin(NewPin);
+		}
+		Pins = MoveTemp(OldPins);
+		return;
+	}
+
+	for (UEdGraphPin* OldPin : OldPins)
+	{
+		if (UEdGraphPin* NewPin = FindPin(OldPin->PinName, OldPin->Direction))
+		{
+			NewPin->MovePersistentDataFromOldPin(*OldPin);
+		}
+		else
+		{
+			OldPin->BreakAllPinLinks();
+		}
+		DestroyPin(OldPin);
+	}
+
+	MarkPackageDirty();
+}
+
 void ULDComboGraphNode::CreateCommandPins()
 {
 	const UEnum* CommandEnum = StaticEnum<ELDAttackCommand>();
@@ -75,6 +114,12 @@ FText ULDComboEntryNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("EntryTitle", "Entry");
 }
 
+FLinearColor ULDComboEntryNode::GetNodeTitleColor() const
+{
+	// 시작 노드를 구분하기 위해 초록색
+	return FLinearColor(0.1f, 0.6f, 0.2f);
+}
+
 void ULDComboActionNode::AllocateDefaultPins()
 {
 	CreatePin(EGPD_Input, ComboPinCategory, ComboInputPinName);
@@ -83,7 +128,15 @@ void ULDComboActionNode::AllocateDefaultPins()
 
 FText ULDComboActionNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return ActionName.IsNone() ? LOCTEXT("NewActionTitle", "New Action") : FText::FromName(ActionName);
+	const FText Name = ActionName.IsNone() ? LOCTEXT("NewActionTitle", "New Action") : FText::FromName(ActionName);
+	if (TitleType != ENodeTitleType::FullTitle)
+	{
+		return Name;
+	}
+
+	// 그래프의 노드에는 두 번째 줄에 몽타주와 배율 표시
+	const FText MontageName = Montage ? FText::FromString(Montage->GetName()) : LOCTEXT("NoMontage", "(No Montage)");
+	return FText::Format(LOCTEXT("ActionFullTitle", "{0}\n{1}  x{2}"), Name, MontageName, FText::AsNumber(DamageMultiplier));
 }
 
 void ULDComboActionNode::AutowireNewNode(UEdGraphPin* FromPin)

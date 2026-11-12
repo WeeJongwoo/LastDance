@@ -130,21 +130,6 @@ void ULDComboDataAsset::PrintComboTree()
     UE_LOG(LDLog, Log, TEXT("%s"), *Out);
 }
 
-TArray<FName> ULDComboDataAsset::GetActionNameOptions() const
-{
-	TArray<FName> Options;
-
-    for (const FLDComboAction& Action : Actions)
-    {
-        if (!Action.ActionName.IsNone())
-        {
-			Options.Add(Action.ActionName);
-        }
-	}
-
-    return Options;
-}
-
 void ULDComboDataAsset::AppendTree(const FLDComboNext& Next, const FString& Prefix, bool bIsLast, TSet<FName>& Path, FString& Out) const
 {
     Out += Prefix + (bIsLast ? TEXT("└─ ") : TEXT("├─ "));

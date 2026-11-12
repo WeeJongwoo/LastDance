@@ -20,6 +20,8 @@ public:
 	// 출력 핀의 연결을 FLDComboNext 목록으로 변환
 	void AppendNextActions(TArray<FLDComboNext>& OutNexts) const;
 
+	virtual void ReconstructNode() override;
+
 protected:
 	// ELDAttackCommand의 커맨드마다 출력 핀 생성
 	void CreateCommandPins();
@@ -33,6 +35,7 @@ class ULDComboEntryNode : public ULDComboGraphNode
 public:
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual bool CanDuplicateNode() const override { return false; }
 };

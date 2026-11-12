@@ -32,6 +32,9 @@ private:
 	void OnGraphSelectionChanged(const TSet<UObject*>& Selection);
 	void OnComboGraphChanged(const FEdGraphEditAction& Action);
 
+	// 노드마다 오류/경고를 계산해서 노드 위에 표시
+	void UpdateNodeErrors();
+
 	// 그래프를 Actions/StartActions로 변환. 결과가 같으면 에셋을 수정하지 않음
 	void CompileGraph();
 
