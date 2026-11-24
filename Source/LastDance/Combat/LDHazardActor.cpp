@@ -83,7 +83,7 @@ void ALDHazardActor::InitializeFromRow(const FLDHazardTableRow& Row)
 	}
 	
 	// 3. 시각 에셋 주입
-	if (DecalComp && !CachedRow.GroundDecal.IsNull())
+	if (DecalComp && !CachedRow.GroundDecal)
 	{
 		DecalComp->SetDecalMaterial(CachedRow.GroundDecal);
 		DecalComp->SetActive(true, true);
